@@ -59,6 +59,7 @@ Decided stack is marked **(decided)**; the rest are assumptions open for correct
 - **Hosting:** GitHub Pages via GitHub Actions (`actions/deploy-pages`). Project site, so it is served under a sub-path (`/dev-digest-ai-marketplace/`). The Vite `base` must be set accordingly.
 - **Fonts / assets:** self-hosted, no third-party requests at runtime.
 - **GitHub Pages:** `site/public/.nojekyll` is shipped so Pages serves every file as is.
+- **UI text (decided):** every user-visible string (labels, headings, sentences, aria-labels, placeholders, error messages, the page title) lives in one typed file, `site/src/i18n/en.ts`, and components read it through `m` from `src/i18n`. Sentences that contain links or code are one message with `{name}` placeholders, filled by `rich()`, so a translation can reorder words. A second language is a second file with the same shape. `site/src/i18n/no-hardcoded-text.test.ts` parses the UI source and fails on any hard-coded text.
 
 ## Data Model: `index.json`
 
@@ -123,7 +124,7 @@ Rules:
 
 - Fields and weights: `name` (x5) > `tags` / `category` (x3) > `description` (x2) > `body` (x1).
 - Fuzzy matching (edit distance about 0.2), prefix matching, case-insensitive.
-- **Natural-language queries** ("мені треба скіл для рев'ю PR", "I need a skill for reviewing PRs"): strip stop words (UK + EN), normalise word forms, expand through a synonym map (`rev'ю` = `review` = `code review`, `тести` = `tests` = `testing`).
+- **Natural-language queries** ("I need a skill for reviewing PRs", or the same request typed in Ukrainian): strip stop words (English and Ukrainian), normalise word forms, and expand each term through a synonym map, so that "review", "code review" and their Ukrainian equivalents match the same artifacts, and likewise for "tests" and "testing". The Ukrainian vocabulary is search data only; the interface and all documentation stay English.
 - The synonym map is a plain versioned JSON file in the repo (`site/src/search/synonyms.json`). Anyone can extend it in a PR.
 - Query and filters are stored in the URL (`#/?q=...&type=skill`), so a result is shareable.
 - Empty state shows suggestions, never a blank page.
@@ -280,6 +281,7 @@ Conventions: TypeScript `strict`, kebab-case file names, no default exports, no 
 | Level | Tool | What |
 |---|---|---|
 | Indexer unit | `node --test` + fixtures | frontmatter parsing, missing optional files, malformed JSON fails loudly, deterministic output, release parsing and date fallback, security flags |
+| UI text guard | Vitest + parser | no readable text in components, views or lib files outside `src/i18n/en.ts`; `index.html` title and description match the messages |
 | Search unit | Vitest | weights, fuzzy, UK/EN synonyms, stop words, empty query, URL state round trip |
 | Component | Vitest + DOM | card, facets, copy button states, palette keyboard nav |
 | E2E | Playwright on the built site under the real base path | search to card to detail, deep link refresh, Cmd/Ctrl+K, copy install writes the expected string, onboarding copy, what's new |
@@ -331,6 +333,7 @@ Manual verification before the first release (nothing fake is committed):
 - Put secrets, API keys or tokens in the client or the index.
 - Execute or evaluate plugin content in the browser.
 - Load third-party scripts, fonts or analytics at runtime.
+- Write user-visible text in a component, view or lib file instead of `src/i18n/en.ts`.
 - Commit generated `index.json`, feeds or build output.
 - Edit plugin files from the site build.
 - Skip or weaken failing tests or the validator to get a deploy through.
@@ -395,10 +398,12 @@ The browser never reads the repository. The index is a snapshot built in CI.
 
 ### Where the build runs
 
-On GitHub's hosted runner (`ubuntu-latest`) inside GitHub Actions, in two jobs:
+On GitHub's hosted runner (`ubuntu-latest`) inside GitHub Actions, in the **Site** workflow (`site.yml`), which is separate from the plugin checks in `validate.yml`. Each job is its own line in the pull request's Checks list:
 
-1. **build**: check out with full history → Node 22 → `npm ci` in `site/` → indexer tests → site tests → install Chromium → `npm run build` (indexer, typecheck, Vite build to `site/dist`) → end-to-end tests → upload `site/dist` as the Pages artifact.
-2. **deploy** (push to `main` and manual runs only): publish that artifact to the `github-pages` environment. The site is served from the Pages CDN at `https://grininara.github.io/dev-digest-ai-marketplace/`.
+1. **Tests** (`tests`): indexer tests, TypeScript type check, site unit tests including the UI text guard. No build needed.
+2. **Build site** (`build`): check out with full history → Node 22 → `npm ci` in `site/` → `npm run build` (indexer, type check, Vite build to `site/dist`) → add the design prototype → write a build summary (commit, catalog counts, size) → upload `site/dist` as the Pages artifact. This job is only the build, so its green or red status answers one question: does the site compile from what is in the repository.
+3. **End-to-end tests** (`e2e`, starts after Build site): install Chromium and run the Playwright tests against the production build; on failure the report is uploaded.
+4. **Deploy to GitHub Pages** (`deploy`, push to `main` and manual runs only, and only when Tests, Build site and End-to-end tests all passed): publish the artifact to the `github-pages` environment. The site is served from the Pages CDN at `https://grininara.github.io/dev-digest-ai-marketplace/`.
 
 Locally, `cd site && npm run dev` runs the indexer and starts Vite. One-time repository setup: Settings → Pages → Build and deployment → Source = **GitHub Actions**.
 
