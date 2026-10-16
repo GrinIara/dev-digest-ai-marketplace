@@ -1,0 +1,11 @@
+{
+  "name": "architecture-review",
+  "version": "1.0.0",
+  "description": "An architecture reviewer agent that checks a diff against layering and boundary rules, using the project's own rules and the engineering-paved-path skills.",
+  "author": { "name": "GrinIara", "url": "https://github.com/GrinIara" },
+  "repository": "https://github.com/GrinIara/dev-digest-ai-marketplace",
+  "keywords": ["architecture", "review", "layering", "boundaries", "agent"],
+  "dependencies": [
+    { "name": "engineering-paved-path", "version": "^1.0.0" }
+  ]
+}

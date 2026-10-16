@@ -29,6 +29,10 @@ Inside a session, the same actions are in the `/plugin` menu. `claude plugin ins
 | Plugin | Description | Contents |
 |---|---|---|
 | [starter](plugins/starter) | Reference template plugin. Copy it to start a new plugin. | skill `hello`, agent `starter-helper` |
+| [engineering-paved-path](plugins/engineering-paved-path) | Engineering skills for TypeScript web projects: React, Next.js, Fastify, Drizzle and PostgreSQL, Zod, TypeScript, layered architecture, testing and security. | 11 skills |
+| [research-tools](plugins/research-tools) | A researcher agent for repository lookups and external research. It has no edit tools. | agent `researcher` |
+| [architecture-review](plugins/architecture-review) | An architecture reviewer that checks a diff against layering and boundary rules. Depends on `engineering-paved-path`. | agent `architecture-reviewer` |
+| [sdd-engineering](plugins/sdd-engineering) | A Spec Driven Development workflow: spec, plan, implement, verify, retro. Depends on the three plugins above. | agents `spec-creator`, `implementation-planner`, `implementer`, `plan-verifier`; skills `implement`, `workflow-retro`, `ears-requirements`, `mermaid-diagram` |
 
 ## Repository layout
 
