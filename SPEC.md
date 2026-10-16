@@ -54,13 +54,15 @@ Decided stack is marked **(decided)**; the rest are assumptions open for correct
 - **Search (decided):** fuzzy + keyword for v1 (MiniSearch). The index schema leaves room for embeddings later.
 - **Markdown rendering:** `marked` + `DOMPurify` (README and SKILL.md are untrusted content from PRs).
 - **Indexer:** Node 22 script, plain ESM `.mjs`, same style as `scripts/lint-marketplace.mjs`. Node 22 is already pinned in CI.
-- **Routing:** hash routing (`#/plugin/<name>`). GitHub Pages cannot rewrite paths, so path routing breaks on refresh.
+- **Routing:** hash routing with a small hand-written router (about 60 lines, `hashchange` + `URLSearchParams`, no library). Routes: `#/` (browse, with `?q=`, `type`, `tag`, `author`, `category`, `sort`), `#/plugin/<name>`, `#/artifact/<id>` (one scheme for every non-plugin artifact; `<id>` is `<plugin>/<type>/<name>`), `#/new`, `#/start`. An unknown route shows the Not found screen. GitHub Pages cannot rewrite paths, so path routing would break on refresh.
+- **Search provider (decided):** search sits behind a small `SearchProvider` interface; v1 ships `KeywordProvider` (MiniSearch). A `SemanticProvider` can be added later without UI changes.
 - **Hosting:** GitHub Pages via GitHub Actions (`actions/deploy-pages`). Project site, so it is served under a sub-path (`/dev-digest-ai-marketplace/`). The Vite `base` must be set accordingly.
 - **Fonts / assets:** self-hosted, no third-party requests at runtime.
+- **GitHub Pages:** `site/public/.nojekyll` is shipped so Pages serves every file as is.
 
 ## Data Model: `index.json`
 
-Built in CI from the repo, published next to the site. One file, loaded once, searched in the browser.
+Built in CI from the repo, published next to the site. `index.json` is loaded once and searched in the browser. It carries only metadata and a short plain-text `bodyText` (at most 4 KB, markdown stripped); the full markdown of each artifact is written to `bodies/<id>.md` (the `/` in an id becomes `__`) and fetched only when a detail view opens. This keeps the index small as the catalog grows.
 
 ```jsonc
 {
@@ -81,11 +83,12 @@ Built in CI from the repo, published next to the site. One file, loaded once, se
       "author": "GrinIara",
       "version": "0.1.0",
       "tools": ["Read", "Grep", "Glob"],    // from frontmatter `tools`, when present
-      "dependencies": [],                   // reserved for the graph (not shown in v1)
+      "dependencies": [],                   // [{ "name", "version", "marketplace"? }] from plugin.json; the graph UI is not in v1
       "installCommand": "/plugin install starter@dev-digest-ai-marketplace",
       "path": "plugins/starter/skills/hello/SKILL.md",
       "sourceUrl": "https://github.com/GrinIara/dev-digest-ai-marketplace/blob/main/plugins/starter/skills/hello/SKILL.md",
-      "body": "…markdown…",                  // used for search and detail view
+      "bodyText": "…plain text, max 4 KB…",   // markdown stripped; used for search only
+      "bodyPath": "bodies/starter__skill__hello.md", // raw markdown, fetched lazily by the detail view
       "security": { "hooks": false, "mcp": false, "scripts": false },
       "compat": { "claudeCode": "2.1.301+", "os": ["macOS", "Linux", "Windows"] },
       "updatedAt": "2026-10-16"
@@ -113,7 +116,8 @@ Rules:
 - The indexer must tolerate missing optional files. Today `commands/`, `hooks/` and `.mcp.json` do not exist.
 - Invalid or unparseable input fails the build with a message naming the file. It never produces a partial index silently.
 - Output is deterministic (sorted keys and artifacts) so the diff of two runs is meaningful.
-- Index size budget: under 1 MB gzipped up to about 200 artifacts. Above that, shard by type (decision deferred).
+- Index size budget: under 1 MB gzipped up to about 200 artifacts. With full bodies embedded, five plugins already produce a 273 KB index (87 KB gzipped), so bodies are split out as described above.
+- The indexer resolves every path from `--root`, which defaults to the repository root derived from the script's own location (`import.meta.url`), never from the current working directory.
 
 ## Search Behaviour (F1)
 
@@ -124,6 +128,8 @@ Rules:
 - Query and filters are stored in the URL (`#/?q=...&type=skill`), so a result is shareable.
 - Empty state shows suggestions, never a blank page.
 - No runtime LLM and no API key anywhere in the client.
+- Facets are a post-filter: AND between groups, OR inside a group.
+- Matched terms are highlighted in the card name and description.
 
 ## Screens and Components (input for design)
 
@@ -135,14 +141,15 @@ Rules:
    - Facet sidebar (desktop) or filter sheet (mobile): type, tag, author, category. Counts per option.
    - Result grid of **cards**; sort: relevance (when a query exists), name, recently updated.
    - **What's new** strip: the latest 3 releases, link to the full feed (F6).
-2. **Detail** (`#/plugin/<name>` and `#/skill/<plugin>/<name>`, etc.)
+2. **Detail** (`#/plugin/<name>` and `#/artifact/<id>`)
    - Title, type badge, version, author, links to source on GitHub.
    - **Copy install** primary button.
    - Tabs or sections: Overview (rendered README / SKILL.md), What it includes (skills, agents, ...), Permissions (tools, hooks, MCP, scripts), Compatibility, Changelog.
    - "Related" artifacts (same plugin; same tags).
 3. **What's new** (`#/new`): chronological releases, per-plugin filter, feed links (`feed.json`, `feed.xml`).
 4. **Get started** (`#/start`): onboarding. Same content as the Home call to action, in full.
-5. **Not found** (`#/404`): friendly message, search field.
+5. **Not found** (unknown route): friendly message, search field.
+6. **Empty catalog** (home when `index.json` has no entries, for example when `plugins/` is empty): an explicit empty state that explains how to add a plugin, with a link to `CONTRIBUTING.md`. No demo data is shipped; the UI fills itself when plugins are added.
 
 ### Components
 
@@ -188,14 +195,14 @@ Shows total plugins, skills, agents, commands, hooks, MCP servers, plus "updated
 
 ## Commands
 
-The repo has no `package.json` today. The site lives in `site/` with its own `package.json`; the indexer lives next to the existing script.
+The site lives in `site/` with its own `package.json`; the indexer lives next to the existing script. `dev`, `build` and `preview` run the indexer first (npm `pre` scripts), so a fresh clone never gets a 404 for `index.json`.
 
 ```
 Install:        cd site && npm ci
-Build index:    node scripts/build-index.mjs --out site/public/index.json
-Dev:            cd site && npm run dev
-Build site:     node scripts/build-index.mjs --out site/public/index.json && cd site && npm run build
-Preview:        cd site && npm run preview
+Build index:    node scripts/build-index.mjs --root . --out site/public
+Dev:            cd site && npm run dev          (runs the indexer first)
+Build site:     cd site && npm run build        (runs the indexer, typechecks, builds to site/dist)
+Preview:        cd site && npm run preview      (runs the indexer, serves the production build under the real base path)
 Unit tests:     cd site && npm test
 Index tests:    node --test scripts/
 E2E:            cd site && npm run e2e
@@ -214,23 +221,23 @@ Exact script names are fixed when the plan is written.
 plugins/<name>/                   plugins (existing)
 scripts/
   lint-marketplace.mjs            existing structural lint
-  build-index.mjs                 NEW: repo -> index.json + feeds
+  build-index.mjs                 NEW: repo -> index.json + bodies/ + feeds
   build-index.test.mjs            NEW: node:test fixtures-based tests
   fixtures/                       NEW: tiny fake marketplaces for tests
 site/                             NEW: the web app
   src/
     main.ts                       entry, router
-    router.ts                     hash routing
-    search/                       MiniSearch setup, synonyms.json, query normalisation
+    router.ts                     hash routing (about 60 lines, no library)
+    search/                       SearchProvider interface, KeywordProvider (MiniSearch), synonyms.json, query normalisation
     views/                        home, detail, new, start, not-found
     components/                   card, facets, palette, stats, badges, code-copy
     lib/                          markdown (sanitised), clipboard, url-state
     styles/                       tokens.css, base.css, components
-  public/                         generated index.json and feeds (not committed)
+  public/                         generated index.json, bodies/, feeds (not committed); .nojekyll (committed)
   tests/                          unit tests; e2e/ for Playwright
 .github/workflows/
   validate.yml                    existing, unchanged
-  pages.yml                       NEW: build index + site, deploy to Pages on main
+  site.yml                        NEW: PR build-check; build + deploy to Pages on main
 docs/SITE.md                      NEW: how the site is built and how to extend synonyms
 SPEC.md                           this file
 ```
@@ -279,14 +286,21 @@ Conventions: TypeScript `strict`, kebab-case file names, no default exports, no 
 | Accessibility | axe in Playwright | zero serious/critical violations on every screen, both themes |
 | Performance | Lighthouse CI on the built site | see success criteria |
 
-The indexer test fixtures include an **empty marketplace** and a **marketplace with every artifact type**, because the real repo has only `starter` now but must work as plugins are added.
+The indexer test fixtures include an **empty marketplace** and a **marketplace with every artifact type**, because the catalog must work from zero plugins up.
+
+Manual verification before the first release (nothing fake is committed):
+
+1. **Empty state.** With an empty `plugins/` and `plugins: []`, run `npm run build`; the index has no entries, and the built site shows the Empty catalog screen.
+2. **Populated UI with a scratch plugin.** Create a temporary `plugins/_scratch-verify/` (manifest, one skill, one agent, README, CHANGELOG), run the indexer, and check entries, stats, releases and bodies; open the browse, search, plugin and artifact deep links. Delete it afterwards and confirm `git status` shows no scratch or generated files.
+3. **Production parity.** `npm run build && npm run preview`, then open the preview under `/dev-digest-ai-marketplace/` and load the deep links directly, to prove the base path and hash routes work.
 
 ## Success Criteria
 
 - Searching "skill for hello" or the UK equivalent returns the `hello` skill card first.
 - A search of 200 artifacts responds in under 100 ms after the index is loaded (measured in a unit test with a generated 200-artifact index).
 - Every card has a working Copy install; the copied string is exactly `/plugin install <plugin>@dev-digest-ai-marketplace`.
-- A detail URL opened directly or refreshed under `/dev-digest-ai-marketplace/` renders the right page.
+- A detail URL opened directly or refreshed under `/dev-digest-ai-marketplace/` renders the right page, in `npm run preview` as well as on Pages.
+- With no plugins, the site shows the Empty catalog screen and no error.
 - The site builds and deploys from `main` with no manual step, and a PR that breaks the index fails CI before merge.
 - JS shipped excluding `index.json`: at most 100 KB gzipped. Lighthouse (mobile): Performance >= 90, Accessibility >= 95, Best Practices >= 95.
 - Zero third-party runtime requests (verified in E2E).
@@ -340,6 +354,65 @@ Recorded 2026-10-16 after the first review.
 | 4 | Changelog dates | **Adopt** `## 0.1.0 - YYYY-MM-DD`. Optional; git date is the fallback. |
 | 5 | Site URL | Default project URL, `https://grininara.github.io/dev-digest-ai-marketplace/`. |
 | 6 | Design | **Design system first**, then all key screens as one interactive prototype. Dark theme by default, light as an option, a single version. The prototype must be directly implementable. |
+| 7 | Items taken from the second site plan | (1) full markdown in `bodies/<id>.md` with a 4 KB `bodyText` in the index; (2) `SearchProvider` interface; (3) `.nojekyll` in `public/`; (4) indexer paths from `import.meta.url` / `--root`; (5) `dev`, `build`, `preview` run the indexer first; (6) a PR build-check; (7) empty-state screen and the scratch-plugin and preview verification; (8) one `#/artifact/<id>` route. Where the plan disagreed with decisions 1–6 (Ukrainian UI, Google Fonts, feeds deferred, no badges, no 404, lighter tests, Node 20), this spec wins. |
+
+## Indexing and build
+
+### What is indexed
+
+The indexer starts from `.claude-plugin/marketplace.json`. Only plugins **listed there** with a relative `source` inside the repository are indexed; a directory under `plugins/` that is not listed is ignored (and `lint-marketplace` already fails it).
+
+For every listed plugin it reads:
+
+| Indexed | From | Becomes |
+|---|---|---|
+| The plugin | `plugin.json` (version, description, author, keywords), marketplace entry (category, tags), `README.md` | one `plugin` entry |
+| Skills | `skills/*/SKILL.md` (frontmatter and body) | one `skill` entry each |
+| Agents and commands | `agents/*.md`, `commands/*.md` (frontmatter and body) | one entry each |
+| Hooks | `hooks/hooks.json` | one `hook` entry per event; the commands are shown in the description |
+| MCP servers | `.mcp.json` | one `mcp` entry per server; `env` values are removed |
+| Releases | `CHANGELOG.md` headings (`## 1.2.0 - 2026-10-14`); a missing date falls back to the git commit that introduced the version | release feed |
+| Compatibility | `COMPATIBILITY.md` table (Claude Code version, OS) | badges |
+| Security flags | presence of hooks, MCP servers, and script files | badges |
+| Update date | `git log` of each file (CI checks out full history for this) | "updated" |
+
+### What is not indexed
+
+- Plugins that are not in `marketplace.json`.
+- Supporting files of a skill: `references/`, `rules/`, `examples`, `assets/`. Only `SKILL.md` is searchable; the rest stays on GitHub.
+- Components declared outside the default folders through `plugin.json` paths, hooks or MCP servers declared inline in `plugin.json`, and agents in sub-folders (the scan is not recursive).
+- Output styles, LSP servers, monitors, workflows, themes (no artifact type for them yet).
+- Branches and pull requests: the site shows `main` as of the last successful deploy.
+
+### How it is kept fresh
+
+The browser never reads the repository. The index is a snapshot built in CI.
+
+1. A change to `plugins/**`, `.claude-plugin/**`, `scripts/**`, `site/**` or the workflow, merged to `main`, starts the **Site** workflow. `workflow_dispatch` runs it by hand. Changes to files outside those paths (for example the root `README.md` or `docs/`) do not rebuild the site.
+2. The workflow rebuilds the index from the checkout, builds the site, tests it and publishes it. Nothing has to be re-indexed by hand.
+3. A pull request runs the same build and tests but never deploys.
+4. If the indexer fails (unparseable manifest, duplicate id), the build stops. **The previously deployed site stays live**; a broken index is never published.
+
+### Where the build runs
+
+On GitHub's hosted runner (`ubuntu-latest`) inside GitHub Actions, in two jobs:
+
+1. **build**: check out with full history → Node 22 → `npm ci` in `site/` → indexer tests → site tests → install Chromium → `npm run build` (indexer, typecheck, Vite build to `site/dist`) → end-to-end tests → upload `site/dist` as the Pages artifact.
+2. **deploy** (push to `main` and manual runs only): publish that artifact to the `github-pages` environment. The site is served from the Pages CDN at `https://grininara.github.io/dev-digest-ai-marketplace/`.
+
+Locally, `cd site && npm run dev` runs the indexer and starts Vite. One-time repository setup: Settings → Pages → Build and deployment → Source = **GitHub Actions**.
+
+### Indexer fixes (found and fixed 2026-10-16)
+
+Found by running the indexer on a branch with the new plugins, fixed in `scripts/build-index.mjs`, each with a test in `scripts/build-index.test.mjs`:
+
+1. **Nested frontmatter** such as `metadata:` with indented keys (used by `fastify-best-practices`) no longer fails the build; only top-level keys are read. A non-indented list item is still an error.
+2. **Plugin dependencies** are read from `plugin.json` into `dependencies` as `[{ "name", "version" | null, "marketplace"? }]`, so the site can show what a plugin depends on.
+3. **The scripts flag** now ignores `references/`, `assets/` and `examples/` and counts `.js`, `.mjs`, `.cjs` and `.ts` files only when they start with a shebang. A `scripts/` or `bin/` folder, and `.sh`, `.py`, `.rb`, `.ps1` files, still count.
+
+### Still open
+
+- A plugin entry whose `source` is not a relative string (github, url, npm) stops the whole indexer. It should produce a minimal entry from the marketplace metadata and a warning.
 
 ## Open Questions
 

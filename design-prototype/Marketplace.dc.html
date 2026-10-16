@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root,:root[data-theme="dark"]{--bg:#0D1014;--surface:#14181E;--surface-2:#1B2027;--border:#262D36;--border-strong:#38414D;--text:#E7EAEE;--muted:#98A2B0;--accent:#F2B84B;--accent-ink:#1A1306;--accent-text:#F2B84B;--accent-soft:rgba(242,184,75,.16);--ok:#6FD39A;--warn:#F59E7A;--danger:#F28B8B;--overlay:rgba(5,7,10,.72);--t-plugin:#8AB4F8;--t-skill:#6FD39A;--t-agent:#C4A1F5;--t-command:#7DD3DC;--t-hook:#F59E7A;--t-mcp:#E8A3CF;--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;color-scheme:dark}
+:root[data-theme="light"]{--bg:#F6F7F9;--surface:#FFFFFF;--surface-2:#EEF0F3;--border:#E1E4E9;--border-strong:#C6CCD4;--text:#12161B;--muted:#566070;--accent:#F2B84B;--accent-ink:#1A1306;--accent-text:#8A5A00;--accent-soft:rgba(242,184,75,.26);--ok:#1F7A4A;--warn:#B4471F;--danger:#B42323;--overlay:rgba(18,22,27,.4);--t-plugin:#2F5FB8;--t-skill:#1F7A4A;--t-agent:#6B43B5;--t-command:#1C6F78;--t-hook:#B4471F;--t-mcp:#A23A7C;color-scheme:light}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+*{box-sizing:border-box}
+a{color:var(--accent-text);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+mark{background:var(--accent-soft);color:var(--text);border-radius:3px;padding:0 1px}
+input[type=search]::-webkit-search-cancel-button{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</helmet>
+<div style="min-height:100vh; display:flex; flex-direction:column; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased">
+<a href="#main" style="position:absolute; left:-9999px; top:8px" style-focus="left:8px; z-index:100; background:var(--surface); padding:8px 12px; border-radius:8px">Skip to content</a>
+<div aria-live="polite" role="status" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">{{ live }}</div>
+
+<header style="position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border)">
+  <div style="max-width:1200px; margin:0 auto; padding:12px 24px; display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px">
+    <a href="#/" aria-label="dev-digest marketplace, home" style="display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none">
+      <span aria-hidden="true" style="width:28px; height:28px; border-radius:8px; background:var(--accent); color:var(--accent-ink); display:grid; place-items:center; font-family:var(--mono); font-weight:600; font-size:12px">dd</span>
+      <span style="font-weight:600; font-size:15px; white-space:nowrap">dev-digest <span style="color:var(--muted); font-weight:400">marketplace</span></span>
+    </a>
+    <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+      <nav aria-label="Main" style="display:flex; gap:4px">
+        <sc-for list="{{ navLinks }}" as="n" hint-placeholder-count="3">
+          <a href="{{ n.href }}" aria-current="{{ n.current }}" style="padding:6px 10px; border-radius:8px; font-size:14px; text-decoration:none; color:{{ n.color }}; background:{{ n.bg }}" style-hover="color:var(--text); text-decoration:none">{{ n.label }}</a>
+        </sc-for>
+      </nav>
+    </sc-if>
+    <div role="search" style="position:relative; display:flex; align-items:center; min-width:0; flex:{{ searchFlex }}; order:{{ searchOrder }}">
+      <span aria-hidden="true" style="position:absolute; left:12px; width:12px; height:12px; border:1.6px solid var(--muted); border-radius:50%"></span>
+      <input ref="{{ searchRef }}" type="search" value="{{ q }}" onChange="{{ onQ }}" placeholder="Search plugins, skills, agents…" aria-label="Search the marketplace" style="width:100%; height:40px; padding:0 64px 0 34px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; font:inherit; font-size:14.5px; outline:none" style-focus="border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)">
+      <sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ clearQ }}" aria-label="Clear search" style="position:absolute; right:6px; height:28px; padding:0 10px; border:0; background:var(--surface-2); color:var(--muted); border-radius:6px; font:inherit; font-size:12.5px; cursor:pointer" style-hover="color:var(--text)">Clear</button>
+      </sc-if>
+      <sc-if value="{{ noQ }}" hint-placeholder-val="{{ true }}">
+        <kbd aria-hidden="true" style="position:absolute; right:10px; font-family:var(--mono); font-size:11px; color:var(--muted); border:1px solid var(--border-strong); border-radius:5px; padding:1px 7px">/</kbd>
+      </sc-if>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; margin-left:auto">
+      <button onClick="{{ openPal }}" aria-label="Open command palette" aria-haspopup="dialog" style="height:34px; padding:0 10px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); font-family:var(--mono); font-size:12px; cursor:pointer" style-hover="color:var(--text); border-color:var(--border-strong)">{{ kHint }}</button>
+      <button onClick="{{ toggleTheme }}" aria-label="{{ themeAria }}" style="height:34px; padding:0 12px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); font:inherit; font-size:13px; cursor:pointer" style-hover="color:var(--text); border-color:var(--border-strong)">{{ themeLabel }}</button>
+      <a href="https://github.com/GrinIara/dev-digest-ai-marketplace" target="_blank" rel="noopener" style="height:34px; display:flex; align-items:center; padding:0 12px; border:1px solid var(--border); border-radius:8px; color:var(--muted); font-size:13px; text-decoration:none" style-hover="color:var(--text); border-color:var(--border-strong); text-decoration:none">GitHub ↗</a>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1" style="flex:1; width:100%; max-width:1200px; margin:0 auto; padding:32px 24px 72px; outline:none">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="Home / Browse" style="display:flex; flex-direction:column; gap:40px">
+    <section aria-labelledby="hero-title" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap:20px">
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; display:flex; flex-direction:column; gap:16px">
+        <h1 id="hero-title" style="margin:0; font-size:clamp(26px,3.4vw,36px); line-height:1.15; font-weight:600; letter-spacing:-0.02em; text-wrap:balance">Plugins, skills and agents for Claude Code</h1>
+        <p style="margin:0; color:var(--muted); max-width:52ch; text-wrap:pretty">Everything in <span style="font-family:var(--mono); font-size:13.5px; color:var(--text)">dev-digest-ai-marketplace</span>, searchable in one place. Connect the marketplace once, then copy an install command from any card.</p>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px">
+          <span style="font-size:12.5px; color:var(--muted)">Step 1 of 3 · Add the marketplace</span>
+          <div style="display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px 6px 6px 14px; min-width:0">
+            <code style="flex:1; min-width:0; font-family:var(--mono); font-size:13px; overflow-x:auto; white-space:nowrap; padding:4px 0">{{ heroCode.text }}</code>
+            <button onClick="{{ heroCode.onCopy }}" aria-label="Copy marketplace add command" style="flex:none; height:30px; padding:0 12px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:7px; font:inherit; font-size:13px; cursor:pointer" style-hover="border-color:var(--accent)">
+              <sc-if value="{{ heroCode.idle }}" hint-placeholder-val="{{ true }}"><span>Copy</span></sc-if>
+              <sc-if value="{{ heroCode.copied }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ok)">✓ Copied</span></sc-if>
+              <sc-if value="{{ heroCode.failed }}" hint-placeholder-val="{{ false }}"><span style="color:var(--danger)">Copy failed</span></sc-if>
+            </button>
+          </div>
+        </div>
+        <a href="#/start" style="font-size:14px; align-self:flex-start; font-weight:500">Get started in 3 steps →</a>
+      </div>
+      <section aria-labelledby="stats-title" style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px 28px; display:flex; flex-direction:column; gap:18px">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap">
+          <h2 id="stats-title" style="margin:0; font-family:var(--mono); font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em">Catalog</h2>
+          <span style="font-size:12.5px; color:var(--muted)">updated 16 Oct 2026 · <span style="font-family:var(--mono)">e733511</span></span>
+        </div>
+        <dl style="margin:0; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:18px 12px">
+          <sc-for list="{{ stats }}" as="st" hint-placeholder-count="6">
+            <div style="display:flex; flex-direction:column-reverse; gap:2px">
+              <dt style="font-size:13px; color:var(--muted)">{{ st.label }}</dt>
+              <dd style="margin:0; font-family:var(--mono); font-size:28px; font-weight:500; line-height:1.1; color:{{ st.color }}">{{ st.n }}</dd>
+            </div>
+          </sc-for>
+        </dl>
+        <div style="margin-top:auto; padding-top:14px; border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; color:var(--muted)">
+          <span style="color:var(--ok); font-weight:500">✓ Validation passing</span>
+          <span style="font-family:var(--mono); font-size:12px">claude plugin validate . --strict</span>
+        </div>
+      </section>
+    </section>
+
+    <section aria-labelledby="browse-title" style="display:grid; gap:32px; grid-template-columns:{{ homeCols }}">
+      <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" aria-hidden="true" style="position:fixed; inset:0; background:var(--overlay); z-index:40"></div>
+      </sc-if>
+      <sc-if value="{{ showAside }}" hint-placeholder-val="{{ true }}">
+        <aside aria-label="Filters" role="{{ asideRole }}" aria-modal="{{ sheetOpen }}" style="{{ asideStyle }}">
+          <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; justify-content:space-between; align-items:center">
+              <h2 style="margin:0; font-size:17px; font-weight:600">Filters</h2>
+              <button onClick="{{ closeSheet }}" style="height:40px; padding:0 14px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text); font:inherit; cursor:pointer">Close</button>
+            </div>
+          </sc-if>
+          <sc-for list="{{ facetGroups }}" as="g" hint-placeholder-count="4">
+            <fieldset style="border:0; padding:0; margin:0; min-width:0">
+              <legend style="width:100%; padding:0; margin-bottom:8px">
+                <span style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+                  <button onClick="{{ g.onToggle }}" aria-expanded="{{ g.expanded }}" style="display:flex; align-items:center; gap:6px; padding:0; background:none; border:0; color:var(--muted); font-family:var(--mono); font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer" style-hover="color:var(--text)">
+                    <span aria-hidden="true" style="width:10px">{{ g.caret }}</span>{{ g.label }}
+                  </button>
+                  <sc-if value="{{ g.hasSel }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ g.onClear }}" aria-label="{{ g.clearAria }}" style="padding:0; background:none; border:0; color:var(--accent-text); font:inherit; font-size:12.5px; cursor:pointer">Clear</button>
+                  </sc-if>
+                </span>
+              </legend>
+              <sc-if value="{{ g.expanded }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column">
+                  <sc-for list="{{ g.options }}" as="o" hint-placeholder-count="4">
+                    <label style="display:flex; align-items:center; gap:10px; padding:5px 0; font-size:14px; cursor:{{ o.cursor }}; opacity:{{ o.opacity }}">
+                      <input type="checkbox" checked="{{ o.checked }}" disabled="{{ o.disabled }}" onChange="{{ o.onToggle }}" style="accent-color:var(--accent); width:16px; height:16px; margin:0; flex:none">
+                      <sc-if value="{{ o.isType }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:14px; text-align:center; font-size:12px; color:var(--t-{{ o.value }})">{{ o.glyph }}</span></sc-if>
+                      <span style="flex:1; min-width:0; overflow-wrap:anywhere">{{ o.label }}</span>
+                      <span style="font-family:var(--mono); font-size:12px; color:var(--muted)">{{ o.count }}</span>
+                    </label>
+                  </sc-for>
+                  <sc-if value="{{ g.hasMore }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ g.onMore }}" style="align-self:flex-start; margin-top:6px; padding:0; background:none; border:0; color:var(--accent-text); font:inherit; font-size:13px; cursor:pointer">{{ g.moreLabel }}</button>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </fieldset>
+          </sc-for>
+          <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ closeSheet }}" style="height:48px; border:0; border-radius:10px; background:var(--accent); color:var(--accent-ink); font:inherit; font-weight:600; cursor:pointer">{{ showResultsLabel }}</button>
+          </sc-if>
+        </aside>
+      </sc-if>
+
+      <div style="display:flex; flex-direction:column; gap:16px; min-width:0">
+        <div style="display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap">
+          <h2 id="browse-title" style="margin:0; font-size:20px; font-weight:600; letter-spacing:-0.01em; overflow-wrap:anywhere">{{ resultsTitle }}</h2>
+          <span style="font-size:13px; color:var(--muted)">{{ countLabel }}</span>
+          <div style="display:flex; align-items:center; gap:8px; margin-left:auto">
+            <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ openSheet }}" aria-haspopup="dialog" style="height:38px; padding:0 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font:inherit; font-size:14px; cursor:pointer">{{ filtersBtnLabel }}</button>
+            </sc-if>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted)">Sort
+              <select value="{{ sortEff }}" onChange="{{ onSort }}" style="height:38px; padding:0 10px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; font:inherit; font-size:14px">
+                <sc-for list="{{ sortOptions }}" as="so" hint-placeholder-count="3">
+                  <option value="{{ so.value }}" disabled="{{ so.disabled }}">{{ so.label }}</option>
+                </sc-for>
+              </select>
+            </label>
+          </div>
+        </div>
+        <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center">
+            <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="2">
+              <button onClick="{{ ch.onRemove }}" aria-label="{{ ch.aria }}" style="height:28px; display:flex; align-items:center; gap:6px; padding:0 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:999px; color:var(--text); font:inherit; font-size:13px; cursor:pointer" style-hover="border-color:var(--border-strong)">{{ ch.label }}<span aria-hidden="true" style="color:var(--muted)">×</span></button>
+            </sc-for>
+            <button onClick="{{ clearAll }}" style="padding:0 4px; background:none; border:0; color:var(--accent-text); font:inherit; font-size:13px; cursor:pointer">Clear all</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+          <div aria-busy="true" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:16px">
+            <sc-for list="{{ skeletons }}" as="sk" hint-placeholder-count="6">
+              <div style="height:208px; border-radius:14px; background:var(--surface); border:1px solid var(--border)"></div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+          <ul style="list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:16px">
+            <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+              <li style="display:flex; min-width:0">
+                <article style="position:relative; flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:12px; transition:border-color .15s, transform .15s" style-hover="border-color:var(--border-strong)">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                    <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:0.04em; padding:2px 8px; border-radius:6px; color:var(--t-{{ c.type }}); border:1px solid currentColor">
+                      <span aria-hidden="true">{{ c.glyph }}</span>{{ c.typeLabel }}
+                    </span>
+                    <span style="font-family:var(--mono); font-size:12px; color:var(--muted)">v{{ c.version }}</span>
+                    <span style="flex:1"></span>
+                    <sc-for list="{{ c.sec }}" as="sb" hint-placeholder-count="0">
+                      <span title="{{ sb.title }}" style="font-family:var(--mono); font-size:11px; padding:1px 7px; border-radius:6px; color:var(--warn); border:1px dashed var(--warn)">⚠ {{ sb.label }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                    <h3 style="margin:0; font-family:var(--mono); font-size:16px; font-weight:600; overflow-wrap:anywhere">
+                      <a href="{{ c.href }}" style="color:var(--text); text-decoration:none" style-after="content:''; position:absolute; inset:0; border-radius:14px">{{ c.name }}</a>
+                    </h3>
+                    <span style="font-size:13px; color:var(--muted)">{{ c.sub }}</span>
+                  </div>
+                  <p style="margin:0; color:var(--muted); font-size:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap:pretty">
+                    <sc-for list="{{ c.segs }}" as="sg" hint-placeholder-count="1"><sc-if value="{{ sg.hit }}"><mark>{{ sg.t }}</mark></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for>
+                  </p>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px">
+                    <sc-for list="{{ c.tags }}" as="tg" hint-placeholder-count="2">
+                      <span style="font-size:12px; color:var(--muted); background:var(--surface-2); border-radius:6px; padding:1px 8px">#{{ tg }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="margin-top:auto; padding-top:6px; display:flex; align-items:center; gap:10px">
+                    <button onClick="{{ c.onCopy }}" aria-label="{{ c.copyAria }}" title="{{ c.install }}" style="position:relative; z-index:1; height:34px; padding:0 14px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); font:inherit; font-size:13.5px; font-weight:500; cursor:pointer" style-hover="border-color:var(--accent)">
+                      <sc-if value="{{ c.cs.idle }}" hint-placeholder-val="{{ true }}"><span>Copy install</span></sc-if>
+                      <sc-if value="{{ c.cs.copied }}" hint-placeholder-val="{{ false }}"><span style="color:var(--ok)">✓ Copied</span></sc-if>
+                      <sc-if value="{{ c.cs.failed }}" hint-placeholder-val="{{ false }}"><span style="color:var(--danger)">Copy failed</span></sc-if>
+                    </button>
+                    <span style="font-size:12.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0">{{ c.updated }}</span>
+                  </div>
+                </article>
+              </li>
+            </sc-for>
+          </ul>
+        </sc-if>
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed var(--border-strong); border-radius:14px; padding:36px 28px; display:flex; flex-direction:column; gap:14px; align-items:flex-start">
+            <h3 style="margin:0; font-size:17px; font-weight:600; overflow-wrap:anywhere">{{ emptyTitle }}</h3>
+            <p style="margin:0; color:var(--muted); max-width:60ch">Try a shorter query, remove a filter, or one of these. Search understands English and Ukrainian.</p>
+            <div style="display:flex; flex-wrap:wrap; gap:8px">
+              <sc-for list="{{ suggestions }}" as="sug" hint-placeholder-count="4">
+                <button onClick="{{ sug.onClick }}" style="height:32px; padding:0 12px; background:var(--surface); border:1px solid var(--border); border-radius:999px; color:var(--text); font:inherit; font-size:13.5px; cursor:pointer" style-hover="border-color:var(--accent)">{{ sug.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ clearAll }}" style="padding:0; background:none; border:0; color:var(--accent-text); font:inherit; font-size:14px; cursor:pointer">Clear search and filters</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+
+    <section aria-labelledby="new-title" style="display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; align-items:baseline; gap:12px">
+        <h2 id="new-title" style="margin:0; font-size:20px; font-weight:600; letter-spacing:-0.01em">What's new</h2>
+        <a href="#/new" style="font-size:14px; margin-left:auto">All releases →</a>
+      </div>
+      <ul style="list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap:16px">
+        <sc-for list="{{ latestReleases }}" as="r" hint-placeholder-count="3">
+          <li style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:8px">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+              <a href="{{ r.href }}" style="font-family:var(--mono); font-size:14.5px; font-weight:600; color:var(--text)">{{ r.plugin }}</a>
+              <span style="font-family:var(--mono); font-size:12px; color:var(--accent-text)">v{{ r.version }}</span>
+              <span style="margin-left:auto; font-size:12.5px; color:var(--muted)">{{ r.dateLabel }}</span>
+            </div>
+            <p style="margin:0; font-size:14px; color:var(--muted); text-wrap:pretty">{{ r.notes }}</p>
+          </li>
+        </sc-for>
+      </ul>
+    </section>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <article data-screen-label="Detail" style="display:flex; flex-direction:column; gap:28px">
+    <nav aria-label="Breadcrumb" style="font-size:13.5px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap">
+      <a href="#/">Browse</a><span aria-hidden="true">/</span>
+      <sc-if value="{{ d.isChild }}" hint-placeholder-val="{{ false }}"><a href="{{ d.pluginHref }}" style="font-family:var(--mono)">{{ d.plugin }}</a></sc-if>
+      <sc-if value="{{ d.isChild }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">/</span></sc-if>
+      <span aria-current="page" style="font-family:var(--mono); color:var(--text)">{{ d.name }}</span>
+    </nav>
+    <header style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; justify-content:space-between; padding-bottom:28px; border-bottom:1px solid var(--border)">
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:0; flex:1 1 440px">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+          <span style="display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11.5px; font-weight:500; padding:2px 9px; border-radius:6px; color:var(--t-{{ d.type }}); border:1px solid currentColor"><span aria-hidden="true">{{ d.glyph }}</span>{{ d.typeLabel }}</span>
+          <span style="font-family:var(--mono); font-size:11.5px; padding:2px 9px; border-radius:6px; color:var(--muted); border:1px solid var(--border-strong)">Claude Code {{ d.cc }}</span>
+          <sc-for list="{{ d.sec }}" as="sb" hint-placeholder-count="0">
+            <span title="{{ sb.title }}" style="font-family:var(--mono); font-size:11.5px; padding:2px 9px; border-radius:6px; color:var(--warn); border:1px dashed var(--warn)">⚠ {{ sb.label }}</span>
+          </sc-for>
+        </div>
+        <h1 style="margin:0; font-family:var(--mono); font-size:clamp(26px,3.4vw,36px); font-weight:600; letter-spacing:-0.02em; overflow-wrap:anywhere">{{ d.name }}</h1>
+        <p style="margin:0; color:var(--muted); font-size:16px; max-width:66ch; text-wrap:pretty">{{ d.description }}</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13.5px; color:var(--muted)">
+          <span>v<span style="font-family:var(--mono); color:var(--text)">{{ d.version }}</span></span>
+          <span>by <span style="color:var(--text)">{{ d.author }}</span></span>
+          <span>updated {{ d.updated }}</span>
+          <a href="{{ d.sourceUrl }}" target="_blank" rel="noopener">Source on GitHub ↗</a>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; flex:0 1 360px; min-width:min(100%, 280px)">
+        <button onClick="{{ d.onCopy }}" style="height:46px; border:0; border-radius:10px; background:var(--accent); color:var(--accent-ink); font:inherit; font-size:15px; font-weight:600; cursor:pointer" style-hover="filter:brightness(1.06)">
+          <sc-if value="{{ d.cs.idle }}" hint-placeholder-val="{{ true }}"><span>Copy install command</span></sc-if>
+          <sc-if value="{{ d.cs.copied }}" hint-placeholder-val="{{ false }}"><span>✓ Copied to clipboard</span></sc-if>
+          <sc-if value="{{ d.cs.failed }}" hint-placeholder-val="{{ false }}"><span>Copy failed. Select the text below</span></sc-if>
+        </button>
+        <code style="font-family:var(--mono); font-size:12.5px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:9px 12px; overflow-x:auto; white-space:nowrap; user-select:all">{{ d.install }}</code>
+        <sc-if value="{{ d.isChild }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:12.5px; color:var(--muted)">Installs the whole <span style="font-family:var(--mono)">{{ d.plugin }}</span> plugin, which contains this {{ d.typeLower }}.</span>
+        </sc-if>
+      </div>
+    </header>
+
+    <div style="display:grid; grid-template-columns:{{ detailCols }}; gap:40px; align-items:start">
+      <div style="display:flex; flex-direction:column; gap:24px; min-width:0">
+        <div role="tablist" aria-label="Details" onKeyDown="{{ onTabKey }}" style="display:flex; gap:4px; border-bottom:1px solid var(--border); overflow-x:auto">
+          <sc-for list="{{ d.tabs }}" as="tb" hint-placeholder-count="5">
+            <button role="tab" id="{{ tb.tid }}" aria-selected="{{ tb.selected }}" aria-controls="tabpanel" tabindex="{{ tb.tabindex }}" onClick="{{ tb.onClick }}" style="flex:none; height:42px; padding:0 14px; background:none; border:0; border-bottom:2px solid {{ tb.line }}; margin-bottom:-1px; color:{{ tb.color }}; font:inherit; font-size:14px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px" style-hover="color:var(--text)">{{ tb.label }}<sc-if value="{{ tb.hasCount }}"><span style="font-family:var(--mono); font-size:11.5px; color:var(--muted); background:var(--surface-2); border-radius:6px; padding:0 6px">{{ tb.count }}</span></sc-if></button>
+          </sc-for>
+        </div>
+        <div id="tabpanel" role="tabpanel" aria-labelledby="{{ d.activeTid }}" tabindex="0" style="outline:none; min-width:0">
+          <sc-if value="{{ d.tOverview }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; gap:12px; max-width:72ch">
+              <span style="font-family:var(--mono); font-size:12px; color:var(--muted)">{{ d.path }}</span>
+              <sc-for list="{{ d.blocks }}" as="b" hint-placeholder-count="4">
+                <div style="display:contents">
+                  <sc-if value="{{ b.h }}"><h3 style="margin:16px 0 0; font-size:17px; font-weight:600">{{ b.t }}</h3></sc-if>
+                  <sc-if value="{{ b.p }}"><p style="margin:0; color:var(--text); text-wrap:pretty"><sc-for list="{{ b.segs }}" as="s"><sc-if value="{{ s.code }}"><code style="font-family:var(--mono); font-size:13px; background:var(--surface-2); border-radius:5px; padding:1px 5px">{{ s.t }}</code></sc-if><sc-if value="{{ s.text }}"><span>{{ s.t }}</span></sc-if></sc-for></p></sc-if>
+                  <sc-if value="{{ b.li }}"><div style="display:flex; gap:10px; padding-left:4px"><span aria-hidden="true" style="color:var(--muted)">–</span><span><sc-for list="{{ b.segs }}" as="s"><sc-if value="{{ s.code }}"><code style="font-family:var(--mono); font-size:13px; background:var(--surface-2); border-radius:5px; padding:1px 5px">{{ s.t }}</code></sc-if><sc-if value="{{ s.text }}"><span>{{ s.t }}</span></sc-if></sc-for></span></div></sc-if>
+                  <sc-if value="{{ b.code }}">
+                    <div style="position:relative; background:var(--surface); border:1px solid var(--border); border-radius:10px">
+                      <pre style="margin:0; padding:14px 90px 14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.6"><code>{{ b.t }}</code></pre>
+                      <button onClick="{{ b.onCopy }}" aria-label="Copy code" style="position:absolute; top:8px; right:8px; height:28px; padding:0 10px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:6px; font:inherit; font-size:12.5px; cursor:pointer" style-hover="border-color:var(--accent)">
+                        <sc-if value="{{ b.cs.idle }}"><span>Copy</span></sc-if>
+                        <sc-if value="{{ b.cs.copied }}"><span style="color:var(--ok)">✓ Copied</span></sc-if>
+                        <sc-if value="{{ b.cs.failed }}"><span style="color:var(--danger)">Failed</span></sc-if>
+                      </button>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.tIncludes }}" hint-placeholder-val="{{ false }}">
+            <ul style="list-style:none; margin:0; padding:0; border:1px solid var(--border); border-radius:14px; overflow:hidden">
+              <sc-for list="{{ d.includes }}" as="it" hint-placeholder-count="3">
+                <li style="border-top:{{ it.divider }}">
+                  <a href="{{ it.href }}" style="display:flex; align-items:center; gap:14px; padding:14px 18px; color:var(--text); text-decoration:none; background:var(--surface)" style-hover="background:var(--surface-2); text-decoration:none">
+                    <span style="flex:none; width:84px; display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:11.5px; color:var(--t-{{ it.type }})"><span aria-hidden="true">{{ it.glyph }}</span>{{ it.typeLabel }}</span>
+                    <span style="display:flex; flex-direction:column; min-width:0; flex:1">
+                      <span style="font-family:var(--mono); font-size:14px; font-weight:600">{{ it.name }}</span>
+                      <span style="font-size:13.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ it.description }}</span>
+                    </span>
+                    <span aria-hidden="true" style="color:var(--muted)">→</span>
+                  </a>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+          <sc-if value="{{ d.tPerms }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:16px">
+              <p style="margin:0; color:var(--muted); max-width:70ch">Plugins run with your permissions. Read what this one can do before installing.</p>
+              <dl style="margin:0; border:1px solid var(--border); border-radius:14px; overflow:hidden">
+                <sc-for list="{{ d.perms }}" as="pr" hint-placeholder-count="4">
+                  <div style="display:grid; grid-template-columns:120px minmax(0,1fr); gap:16px; padding:14px 18px; background:var(--surface); border-top:{{ pr.divider }}">
+                    <dt style="font-size:14px; font-weight:500">{{ pr.label }}</dt>
+                    <dd style="margin:0; display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:14px; color:var(--muted)">
+                      <sc-if value="{{ pr.isFlag }}"><span style="font-family:var(--mono); font-size:12px; font-weight:500; color:{{ pr.color }}">{{ pr.state }}</span></sc-if>
+                      <sc-for list="{{ pr.chips }}" as="tl"><span style="font-family:var(--mono); font-size:12.5px; color:var(--text); background:var(--surface-2); border-radius:6px; padding:2px 8px">{{ tl }}</span></sc-for>
+                      <span>{{ pr.text }}</span>
+                    </dd>
+                  </div>
+                </sc-for>
+              </dl>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.tCompat }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:16px">
+              <dl style="margin:0; border:1px solid var(--border); border-radius:14px; overflow:hidden">
+                <div style="display:grid; grid-template-columns:120px minmax(0,1fr); gap:16px; padding:14px 18px; background:var(--surface)">
+                  <dt style="font-size:14px; font-weight:500">Claude Code</dt>
+                  <dd style="margin:0; font-family:var(--mono); font-size:13.5px">{{ d.cc }}</dd>
+                </div>
+                <sc-for list="{{ d.os }}" as="os" hint-placeholder-count="3">
+                  <div style="display:grid; grid-template-columns:120px minmax(0,1fr); gap:16px; padding:14px 18px; background:var(--surface); border-top:1px solid var(--border)">
+                    <dt style="font-size:14px; font-weight:500">{{ os.name }}</dt>
+                    <dd style="margin:0; font-size:14px; color:{{ os.color }}">{{ os.label }}</dd>
+                  </div>
+                </sc-for>
+              </dl>
+              <span style="font-size:13px; color:var(--muted)">From <span style="font-family:var(--mono)">plugins/{{ d.plugin }}/COMPATIBILITY.md</span></span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ d.tLog }}" hint-placeholder-val="{{ false }}">
+            <ol style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0; border-left:1px solid var(--border); margin-left:6px">
+              <sc-for list="{{ d.log }}" as="lg" hint-placeholder-count="2">
+                <li style="position:relative; padding:0 0 22px 22px">
+                  <span aria-hidden="true" style="position:absolute; left:-5px; top:7px; width:9px; height:9px; border-radius:50%; background:{{ lg.dot }}; border:1px solid var(--border-strong)"></span>
+                  <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
+                    <span style="font-family:var(--mono); font-size:14.5px; font-weight:600">{{ lg.version }}</span>
+                    <span style="font-size:13px; color:var(--muted)">{{ lg.dateLabel }}</span>
+                  </div>
+                  <p style="margin:4px 0 0; font-size:14px; color:var(--muted); text-wrap:pretty">{{ lg.notes }}</p>
+                </li>
+              </sc-for>
+            </ol>
+          </sc-if>
+        </div>
+      </div>
+      <aside aria-labelledby="related-title" style="display:flex; flex-direction:column; gap:12px; min-width:0">
+        <h2 id="related-title" style="margin:0; font-family:var(--mono); font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em">Related</h2>
+        <sc-if value="{{ d.hasRelated }}" hint-placeholder-val="{{ true }}">
+          <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ d.related }}" as="rl" hint-placeholder-count="3">
+              <li>
+                <a href="{{ rl.href }}" style="display:flex; flex-direction:column; gap:4px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); text-decoration:none" style-hover="border-color:var(--border-strong); text-decoration:none">
+                  <span style="display:flex; align-items:center; gap:8px"><span style="font-family:var(--mono); font-size:11px; color:var(--t-{{ rl.type }})"><span aria-hidden="true">{{ rl.glyph }}</span> {{ rl.typeLabel }}</span><span style="font-family:var(--mono); font-size:14px; font-weight:600">{{ rl.name }}</span></span>
+                  <span style="font-size:13px; color:var(--muted)">{{ rl.why }}</span>
+                </a>
+              </li>
+            </sc-for>
+          </ul>
+        </sc-if>
+        <sc-if value="{{ d.noRelated }}" hint-placeholder-val="{{ false }}"><p style="margin:0; font-size:14px; color:var(--muted)">Nothing related yet.</p></sc-if>
+      </aside>
+    </div>
+  </article>
+</sc-if>
+
+<sc-if value="{{ isNew }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="What's new" aria-labelledby="releases-title" style="display:flex; flex-direction:column; gap:28px; max-width:820px">
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <h1 id="releases-title" style="margin:0; font-size:clamp(26px,3.4vw,34px); font-weight:600; letter-spacing:-0.02em">What's new</h1>
+      <p style="margin:0; color:var(--muted)">Releases from each plugin's <span style="font-family:var(--mono); font-size:13.5px">CHANGELOG.md</span>. A release without a recorded date shows no date.</p>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
+      <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted)">Plugin
+        <select value="{{ relPlugin }}" onChange="{{ onRelPlugin }}" style="height:38px; padding:0 10px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; font:inherit; font-size:14px">
+          <option value="">All plugins</option>
+          <sc-for list="{{ pluginOptions }}" as="po" hint-placeholder-count="3"><option value="{{ po }}">{{ po }}</option></sc-for>
+        </select>
+      </label>
+      <span style="flex:1"></span>
+      <a href="feed.json" style="height:34px; display:flex; align-items:center; padding:0 12px; border:1px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:12.5px; color:var(--text); text-decoration:none" style-hover="border-color:var(--border-strong); text-decoration:none">feed.json</a>
+      <a href="feed.xml" style="height:34px; display:flex; align-items:center; padding:0 12px; border:1px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:12.5px; color:var(--text); text-decoration:none" style-hover="border-color:var(--border-strong); text-decoration:none">feed.xml (Atom)</a>
+    </div>
+    <ol style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px">
+      <sc-for list="{{ releases }}" as="r" hint-placeholder-count="4">
+        <li style="display:grid; grid-template-columns:{{ relCols }}; gap:8px 24px; padding:18px 20px; background:var(--surface); border:1px solid var(--border); border-radius:14px">
+          <span style="font-size:13.5px; color:{{ r.dateColor }}">{{ r.dateLabel }}</span>
+          <div style="display:flex; flex-direction:column; gap:6px; min-width:0">
+            <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
+              <a href="{{ r.href }}" style="font-family:var(--mono); font-size:15px; font-weight:600; color:var(--text)">{{ r.plugin }}</a>
+              <span style="font-family:var(--mono); font-size:12.5px; color:var(--accent-text)">v{{ r.version }}</span>
+            </div>
+            <p style="margin:0; font-size:14.5px; color:var(--muted); text-wrap:pretty">{{ r.notes }}</p>
+          </div>
+        </li>
+      </sc-for>
+    </ol>
+  </section>
+</sc-if>
+
+<sc-if value="{{ isStart }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="Get started" aria-labelledby="start-title" style="display:flex; flex-direction:column; gap:28px; max-width:780px">
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <h1 id="start-title" style="margin:0; font-size:clamp(26px,3.4vw,34px); font-weight:600; letter-spacing:-0.02em">Connect the marketplace</h1>
+      <p style="margin:0; color:var(--muted)">Three commands in Claude Code. Copy each one and run it in order.</p>
+    </div>
+    <ol style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <li style="display:grid; grid-template-columns:36px minmax(0,1fr); gap:16px; padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:14px">
+          <span aria-hidden="true" style="width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-family:var(--mono); font-size:13px; font-weight:600; background:{{ s.dotBg }}; color:{{ s.dotColor }}; border:1px solid var(--border-strong)">{{ s.mark }}</span>
+          <div style="display:flex; flex-direction:column; gap:10px; min-width:0">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+              <h2 style="margin:0; font-size:16px; font-weight:600">{{ s.title }}</h2>
+              <sc-if value="{{ s.picker }}">
+                <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted); margin-left:auto">Plugin
+                  <select value="{{ startPlugin }}" onChange="{{ onStartPlugin }}" style="height:34px; padding:0 8px; background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:8px; font:inherit; font-size:13.5px">
+                    <option value="">&lt;plugin&gt;</option>
+                    <sc-for list="{{ pluginOptions }}" as="po"><option value="{{ po }}">{{ po }}</option></sc-for>
+                  </select>
+                </label>
+              </sc-if>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:6px 6px 6px 14px; min-width:0">
+              <code style="flex:1; min-width:0; font-family:var(--mono); font-size:13.5px; overflow-x:auto; white-space:nowrap; padding:4px 0">{{ s.cmd }}</code>
+              <button onClick="{{ s.onCopy }}" aria-label="{{ s.copyAria }}" style="flex:none; height:32px; padding:0 14px; border:1px solid var(--border-strong); background:var(--surface-2); color:var(--text); border-radius:7px; font:inherit; font-size:13.5px; cursor:pointer" style-hover="border-color:var(--accent)">
+                <sc-if value="{{ s.cs.idle }}"><span>Copy</span></sc-if>
+                <sc-if value="{{ s.cs.copied }}"><span style="color:var(--ok)">✓ Copied</span></sc-if>
+                <sc-if value="{{ s.cs.failed }}"><span style="color:var(--danger)">Copy failed</span></sc-if>
+              </button>
+            </div>
+            <span style="font-size:13.5px; color:var(--muted)">{{ s.note }}</span>
+          </div>
+        </li>
+      </sc-for>
+    </ol>
+    <div role="note" style="display:flex; gap:14px; padding:18px 20px; border:1px dashed var(--warn); border-radius:14px">
+      <span aria-hidden="true" style="color:var(--warn); font-weight:600">⚠</span>
+      <p style="margin:0; font-size:14.5px; text-wrap:pretty">Plugins can run hooks, MCP servers and scripts with your permissions. Review a plugin's <a href="#/plugin/starter">Permissions</a> tab before installing it.</p>
+    </div>
+    <p style="margin:0; font-size:14px; color:var(--muted)">Repo access restricted? Private-repo setup is described in <a href="https://github.com/GrinIara/dev-digest-ai-marketplace/blob/main/docs/SECURITY.md" target="_blank" rel="noopener" style="font-family:var(--mono); font-size:13px">docs/SECURITY.md</a>.</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap">
+      <a href="#/" style="height:42px; display:flex; align-items:center; padding:0 18px; border-radius:10px; background:var(--accent); color:var(--accent-ink); font-weight:600; text-decoration:none" style-hover="text-decoration:none; filter:brightness(1.06)">Browse plugins</a>
+    </div>
+  </section>
+</sc-if>
+
+<sc-if value="{{ is404 }}" hint-placeholder-val="{{ false }}">
+  <section data-screen-label="Not found" style="max-width:560px; margin:48px auto; display:flex; flex-direction:column; gap:16px; align-items:flex-start">
+    <span style="font-family:var(--mono); font-size:13px; color:var(--muted)">404</span>
+    <h1 style="margin:0; font-size:30px; font-weight:600; letter-spacing:-0.02em">Nothing at this address</h1>
+    <p style="margin:0; color:var(--muted)">The page may have moved, or the plugin was renamed. Search the catalog instead.</p>
+    <form onSubmit="{{ on404Submit }}" role="search" style="display:flex; gap:8px; width:100%">
+      <input name="q" type="search" aria-label="Search the marketplace" placeholder="Search plugins, skills, agents…" style="flex:1; min-width:0; height:42px; padding:0 14px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; font:inherit; outline:none" style-focus="border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)">
+      <button type="submit" style="height:42px; padding:0 18px; border:0; border-radius:10px; background:var(--accent); color:var(--accent-ink); font:inherit; font-weight:600; cursor:pointer">Search</button>
+    </form>
+    <a href="#/" style="font-size:14px">← Back to browse</a>
+  </section>
+</sc-if>
+</main>
+
+<footer style="border-top:1px solid var(--border)">
+  <div style="max-width:1200px; margin:0 auto; padding:24px; display:flex; flex-wrap:wrap; gap:12px 24px; font-size:13.5px; color:var(--muted)">
+    <a href="#/" style="color:var(--muted)">Browse</a>
+    <a href="#/new" style="color:var(--muted)">What's new</a>
+    <a href="#/start" style="color:var(--muted)">Get started</a>
+    <a href="feed.xml" style="color:var(--muted)">Atom feed</a>
+    <span style="margin-left:auto; font-family:var(--mono); font-size:12px">index.json · schema v1 · e733511</span>
+  </div>
+</footer>
+
+<sc-if value="{{ pal }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closePal }}" style="position:fixed; inset:0; z-index:60; background:var(--overlay); display:flex; justify-content:center; align-items:flex-start; padding:12vh 16px 16px">
+    <div role="dialog" aria-modal="true" aria-label="Command palette" onClick="{{ stop }}" style="width:100%; max-width:620px; background:var(--surface); border:1px solid var(--border-strong); border-radius:14px; box-shadow:0 24px 64px rgba(0,0,0,.45); overflow:hidden; display:flex; flex-direction:column; max-height:70vh">
+      <div style="display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid var(--border)">
+        <span aria-hidden="true" style="font-family:var(--mono); color:var(--accent-text)">›</span>
+        <input ref="{{ palRef }}" value="{{ pq }}" onChange="{{ onPq }}" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-activedescendant="{{ palActiveId }}" aria-label="Search or jump to" placeholder="Search or jump to…" style="flex:1; height:54px; background:transparent; border:0; color:var(--text); font:inherit; font-size:16px; outline:none">
+        <kbd style="font-family:var(--mono); font-size:11px; color:var(--muted); border:1px solid var(--border-strong); border-radius:5px; padding:1px 6px">Esc</kbd>
+      </div>
+      <div id="pal-list" role="listbox" aria-label="Results" style="overflow-y:auto; padding:8px">
+        <sc-if value="{{ palLoading }}"><div style="padding:24px 12px; color:var(--muted); font-size:14px">Loading index…</div></sc-if>
+        <sc-if value="{{ palNoMatch }}">
+          <div style="padding:24px 12px; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:14.5px">No match for “{{ pq }}”</span>
+            <span style="font-size:13.5px; color:var(--muted)">Try another word. Search understands English and Ukrainian.</span>
+          </div>
+        </sc-if>
+        <sc-for list="{{ palGroups }}" as="pg" hint-placeholder-count="0">
+          <div role="group" aria-label="{{ pg.label }}" style="display:flex; flex-direction:column; padding-bottom:6px">
+            <div aria-hidden="true" style="padding:8px 10px 4px; font-family:var(--mono); font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em">{{ pg.label }}</div>
+            <sc-for list="{{ pg.items }}" as="it">
+              <div role="option" id="{{ it.domId }}" aria-selected="{{ it.active }}" onClick="{{ it.run }}" onMouseMove="{{ it.hover }}" style="display:flex; align-items:center; gap:12px; padding:9px 10px; border-radius:8px; cursor:pointer; background:{{ it.bg }}">
+                <span aria-hidden="true" style="width:18px; text-align:center; font-size:12px; color:{{ it.glyphColor }}">{{ it.glyph }}</span>
+                <span style="font-family:{{ it.font }}; font-size:14px; white-space:nowrap">{{ it.label }}</span>
+                <span style="flex:1; min-width:0; font-size:13px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ it.sub }}</span>
+                <sc-if value="{{ it.active }}"><span aria-hidden="true" style="font-family:var(--mono); font-size:11px; color:var(--muted)">↵</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; gap:16px; padding:10px 16px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); font-family:var(--mono)">
+        <span>↑↓ navigate</span><span>↵ open</span><span>esc close</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;catalog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;demo&quot;,&quot;real&quot;],&quot;default&quot;:&quot;demo&quot;,&quot;tsType&quot;:&quot;'demo' | 'real'&quot;,&quot;section&quot;:&quot;Data&quot;},&quot;defaultTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;,&quot;system&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light' | 'system'&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
+const M='dev-digest-ai-marketplace',GH='https://github.com/GrinIara/dev-digest-ai-marketplace';
+const TYPES=[['plugin','Plugin','▣','Plugins'],['skill','Skill','◆','Skills'],['agent','Agent','●','Agents'],['command','Command','/','Commands'],['hook','Hook','↯','Hooks'],['mcp','MCP','⇄','MCP servers']];
+const TL=Object.fromEntries(TYPES.map(t=>[t[0],{label:t[1],glyph:t[2],plural:t[3]}]));
+const PLUGINS=[
+ {n:'starter',d:'Template plugin that shows the structure of a marketplace plugin: one skill and one agent.',cat:'template',tags:['template','example'],au:'GrinIara',v:'0.1.0',up:'2026-10-16',log:[['0.1.0',null,'Initial template: hello skill and greeter agent.']],ch:[['skill','hello','Greets the user and explains what the starter plugin contains. Copy it as a template for new skills.',['Read','Grep','Glob']],['agent','greeter','Example subagent that answers questions about the starter template.',['Read']]]},
+ {n:'pr-review',d:'Review pull requests: diff summary, risk checklist and inline suggestions.',cat:'code-review',tags:['review','pull-request','git'],au:'GrinIara',v:'1.2.0',up:'2026-10-14',sec:{scripts:true},log:[['1.2.0','2026-10-14','Agent output is ranked by severity. Generated files are skipped.'],['1.1.0','2026-09-30','Added the /review command.'],['1.0.0','2026-09-12','First stable release.']],ch:[['skill','review-pr','Reviews the current branch diff against main and writes a structured review: risks, tests to add and nits.',['Read','Grep','Glob','Bash']],['agent','pr-reviewer','Reviews a diff in isolation and returns findings ranked by severity.',['Read','Grep']],['command','review','Runs the review-pr skill on the current branch.',[]]]},
+ {n:'test-writer',d:'Writes and fixes unit tests for TypeScript and Python projects.',cat:'testing',tags:['testing','vitest','pytest'],au:'olena-k',v:'0.4.1',up:'2026-10-10',sec:{scripts:true},log:[['0.4.1','2026-10-10','Detects Vitest workspaces.'],['0.4.0',null,'Python support via pytest.']],ch:[['skill','write-tests','Generates unit tests for a file or function, following the existing test style of the project.',['Read','Write','Bash']],['agent','test-fixer','Runs the failing suite, finds the cause and proposes the smallest fix.',['Read','Edit','Bash']]]},
+ {n:'react-tools',d:'Skills for React work: component scaffolding, accessibility audit and hook refactors.',cat:'frontend',tags:['react','frontend','accessibility'],au:'GrinIara',v:'0.9.0',up:'2026-10-08',log:[['0.9.0','2026-10-08','a11y-audit now checks focus order.'],['0.8.0','2026-09-18','Added the /component command.']],ch:[['skill','react-component','Scaffolds a typed React component with a story and a test, matching the folder conventions of the repo.',['Read','Write','Glob']],['skill','a11y-audit','Audits a component or page against WCAG 2.2 AA and suggests concrete fixes.',['Read','Grep']],['command','component','Scaffolds a new component: /component <Name>.',[]]]},
+ {n:'github-mcp',d:'MCP server config for GitHub: issues, pull requests and Actions from inside Claude Code.',cat:'integrations',tags:['github','mcp','issues'],au:'dmytro-s',v:'0.3.0',up:'2026-09-28',sec:{mcp:true},log:[['0.3.0','2026-09-28','Pinned the server version.']],ch:[['mcp','github','Connects the GitHub MCP server. Needs GITHUB_TOKEN in your environment.',[]]]},
+ {n:'safety-hooks',d:'Hooks that block commits containing secrets and format files after edits.',cat:'security',tags:['security','secrets','formatting'],au:'GrinIara',v:'0.2.0',up:'2026-10-02',os:['macOS','Linux'],sec:{hooks:true,scripts:true},log:[['0.2.0','2026-10-02','format-on-save respects .prettierignore.'],['0.1.0',null,'block-secrets hook.']],ch:[['hook','block-secrets','PreToolUse hook that stops a commit when staged files contain likely secrets.',[]],['hook','format-on-save','PostToolUse hook that runs the project formatter on edited files.',[]]]},
+ {n:'release-kit',d:'Changelog entries and release notes from commits, with semver suggestions.',cat:'release',tags:['changelog','release','git'],au:'olena-k',v:'1.0.0',up:'2026-09-20',log:[['1.0.0','2026-09-20','Stable. Semver suggestion explains its reasoning.']],ch:[['skill','changelog','Writes a CHANGELOG entry from the commits since the last tag.',['Read','Bash']],['command','release','Bumps the version and drafts release notes.',[]]]},
+ {n:'docs-writer',d:'Writes READMEs and API reference pages from the code.',cat:'docs',tags:['docs','documentation','readme'],au:'dmytro-s',v:'0.5.2',up:'2026-10-12',log:[['0.5.2','2026-10-12','Shorter READMEs by default.']],ch:[['skill','write-readme','Drafts a README from the package manifest, entry points and existing docs.',['Read','Glob','Write']],['agent','tech-writer','Edits docs for clarity and consistent terminology.',['Read','Edit']]]}
+];
+const pathFor=(p,t,n)=>({skill:`plugins/${p}/skills/${n}/SKILL.md`,agent:`plugins/${p}/agents/${n}.md`,command:`plugins/${p}/commands/${n}.md`,hook:`plugins/${p}/hooks/hooks.json`,mcp:`plugins/${p}/.mcp.json`})[t];
+function build(P){
+  const arts=[],rel=[];
+  for(const p of P){
+    const security={hooks:false,mcp:false,scripts:false,...(p.sec||{})};
+    const base={plugin:p.n,tags:p.tags,category:p.cat,author:p.au,version:p.v,updatedAt:p.up,security,compat:{claudeCode:'2.1.301+',os:p.os||['macOS','Linux','Windows']},installCommand:`/plugin install ${p.n}@${M}`,changelog:p.log};
+    const kids=p.ch.map(([type,name,description,tools])=>({...base,id:`${p.n}/${type}/${name}`,type,name,description,tools,path:pathFor(p.n,type,name),href:`#/${type}/${p.n}/${name}`}));
+    arts.push({...base,id:p.n,type:'plugin',name:p.n,description:p.d,tools:[...new Set(kids.flatMap(k=>k.tools))],path:`plugins/${p.n}/README.md`,href:`#/plugin/${p.n}`,children:kids.map(k=>k.id)},...kids);
+    p.log.forEach(([version,date,notes])=>rel.push({plugin:p.n,version,date,notes,href:`#/plugin/${p.n}`}));
+  }
+  const byId=Object.fromEntries(arts.map(a=>[a.id,a]));
+  arts.forEach(a=>{a.sourceUrl=`${GH}/blob/main/${a.path}`;a.body=bodyFor(a,byId);a.idx={name:tok(a.name),tags:tok(a.tags.join(' ')+' '+a.category+' '+a.plugin),description:tok(a.description),body:tok(a.body)}});
+  rel.sort((a,b)=>(b.date||'0').localeCompare(a.date||'0')||a.plugin.localeCompare(b.plugin));
+  arts.sort((a,b)=>a.name.localeCompare(b.name));
+  return {arts,rel,byId};
+}
+function bodyFor(a,byId){
+  if(a.type==='plugin'){
+    const inc=a.children.map(id=>byId[id]).map(k=>`- \`${k.name}\` (${TL[k.type].label.toLowerCase()}): ${k.description}`).join('\n');
+    return `## What it does\n${a.description}\n\n## What it includes\n${inc}\n\n## Install\n\`\`\`\n${a.installCommand}\n/reload-plugins\n\`\`\`\n\n## Notes\nMaintained by ${a.author}. Report issues in the marketplace repo.`;
+  }
+  const ex={skill:`Use the ${a.name} skill on the current branch`,agent:`Delegate this to the ${a.name} agent`,command:`/${a.name}`,hook:`# runs automatically, configured in hooks/hooks.json`,mcp:`# starts with Claude Code, configured in .mcp.json`}[a.type];
+  return `## When to use\n${a.description}\n\n## Example\n\`\`\`\n${ex}\n\`\`\`\n\n## Part of\nShips in the \`${a.plugin}\` plugin. Installing the plugin makes it available.`;
+}
+const norm=s=>String(s).toLowerCase().replace(/[’ʼ`]/g,"'");
+const tok=s=>norm(s).match(/[\p{L}\p{N}']+/gu)||[];
+const STOP=new Set('i a an the for to of and with that me my want need find something is in on please which can some any мені мене треба потрібно потрібен потрібна для щоб що і й та в у на з із який яка яке хочу знайти будь ласка шукаю щось якийсь'.split(' '));
+const SYN={review:["review","reviews","reviewing","reviewer","рев'ю","ревю","ревʼю","перевірка","перевірити","рецензія"],test:["test","tests","testing","тест","тести","тестів","тестування"],docs:["docs","documentation","readme","документація","документацію","доки"],security:["security","secure","secrets","secret","безпека","секрети","секретів"],hello:["hello","greet","greets","greeting","привіт","вітання"],changelog:["changelog","release","releases","реліз","релізи","зміни"],react:["react","реакт"],github:["github","гітхаб"],component:["component","components","компонент","компоненти"],accessibility:["accessibility","a11y","доступність"],format:["format","formatting","formatter","форматування"],pr:["pr","pull","request","пулреквест"]};
+const TSYN={skill:["skill","skills","скіл","скіла","скіли","скілів","навичка"],agent:["agent","agents","subagent","агент","агента","агенти"],command:["command","commands","команда","команду","команди"],hook:["hook","hooks","хук","хуки"],mcp:["mcp"],plugin:["plugin","plugins","плагін","плагіна","плагіни"]};
+const VAR={},TVAR={};
+Object.entries(SYN).forEach(([k,v])=>v.forEach(x=>VAR[x]=k));
+Object.entries(TSYN).forEach(([k,v])=>v.forEach(x=>TVAR[x]=k));
+function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let p=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const c=[i];let mn=i;for(let j=1;j<=b.length;j++){c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));mn=Math.min(mn,c[j])}if(mn>max)return max+1;p=c}return p[b.length]}
+const W={name:5,tags:3,description:2,body:1};
+function termScore(term,words){let best=0;for(const w of words){if(w===term)return 1;if(term.length>=2&&w.startsWith(term))best=Math.max(best,.7);else if(term.length>=5&&/[а-яіїєґ]/.test(term)&&w.startsWith(term.slice(0,-1)))best=Math.max(best,.6);else if(term.length>=4){const m=term.length>=7?2:1;if(lev(term,w,m)<=m)best=Math.max(best,.4)}}return best}
+function search(arts,q){
+  const toks=tok(q).filter(t=>!STOP.has(t));const groups=[],types=new Set();
+  toks.forEach(t=>{if(TVAR[t]){types.add(TVAR[t]);return}groups.push(VAR[t]?SYN[VAR[t]]:[t])});
+  if(!groups.length&&!types.size)return{res:[],terms:[]};
+  const scored=arts.map(a=>{const gs=groups.map(alts=>{let b=0;for(const t of alts)for(const f in W){const s=termScore(t,a.idx[f])*W[f];if(s>b)b=s}return b});return{a,gs,base:gs.reduce((x,y)=>x+y,0)+(types.has(a.type)?4:0)}});
+  let res=scored.filter(r=>groups.length?r.gs.every(g=>g>0):types.has(r.a.type));
+  if(!res.length&&groups.length)res=scored.filter(r=>r.gs.some(g=>g>0));
+  return{res:res.map(r=>({a:r.a,score:r.base})),terms:groups.flat().filter(t=>t.length>=3)};
+}
+function segs(text,terms){if(!terms.length)return[{t:text,plain:true}];const parts=text.split(/([\p{L}\p{N}']+)/u);return parts.filter(Boolean).map(p=>{const w=norm(p);const hit=/[\p{L}\p{N}]/u.test(p)&&terms.some(t=>w===t||(t.length>=3&&w.startsWith(t))||(w.length>=4&&t.startsWith(w)));return{t:p,hit,plain:!hit}})}
+function inline(s){return s.split(/(`[^`]+`)/).filter(Boolean).map(x=>x.startsWith('`')?{t:x.slice(1,-1),code:true}:{t:x,text:true})}
+function md(src){const out=[];let code=null;src.split('\n').forEach(l=>{if(l.startsWith('```')){if(code){out.push({code:true,t:code.join('\n')});code=null}else code=[];return}if(code){code.push(l);return}if(!l.trim())return;if(l.startsWith('## '))out.push({h:true,t:l.slice(3)});else if(l.startsWith('- '))out.push({li:true,segs:inline(l.slice(2))});else out.push({p:true,segs:inline(l)})});return out}
+const fmt=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):null;
+const FKEYS=[['type','Type'],['category','Category'],['tag','Tag'],['author','Author']];
+const valOf=(a,k)=>k==='type'?[a.type]:k==='tag'?a.tags:k==='author'?[a.author]:[a.category];
+
+class Component extends DCLogic {
+  state={hash:location.hash||'#/',w:window.innerWidth,theme:(()=>{try{return localStorage.getItem('ddm-theme')}catch(e){return null}})(),pal:false,pq:'',pi:0,sheet:false,copied:{},tab:'overview',collapsed:{},allTags:false,live:'',loaded:false,startPlugin:''};
+  searchRef=React.createRef();palRef=React.createRef();timers={};palFlat=[];
+  componentDidMount(){
+    this.onHash=()=>{this.setState({hash:location.hash||'#/',tab:'overview',sheet:false,pal:false});window.scrollTo(0,0)};
+    this.onPop=()=>this.setState({hash:location.hash||'#/'});
+    this.onResize=()=>this.setState({w:window.innerWidth});
+    this.onKey=e=>this.handleKey(e);
+    addEventListener('hashchange',this.onHash);addEventListener('popstate',this.onPop);addEventListener('resize',this.onResize);addEventListener('keydown',this.onKey);
+    this.loadT=setTimeout(()=>this.setState({loaded:true}),450);
+    this.applyTheme();
+  }
+  componentWillUnmount(){removeEventListener('hashchange',this.onHash);removeEventListener('popstate',this.onPop);removeEventListener('resize',this.onResize);removeEventListener('keydown',this.onKey);clearTimeout(this.loadT)}
+  componentDidUpdate(pp,ps){this.applyTheme();if(this.state.pal&&!ps.pal)setTimeout(()=>this.palRef.current&&this.palRef.current.focus(),0);if(!this.state.pal&&ps.pal&&this.lastFocus&&this.lastFocus.focus)this.lastFocus.focus()}
+  themeNow(){if(this.state.theme)return this.state.theme;const p=this.props.defaultTheme??'dark';if(p==='system')return matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';return p}
+  applyTheme(){document.documentElement.dataset.theme=this.themeNow()}
+  handleKey(e){
+    const k=e.key,mod=e.metaKey||e.ctrlKey;
+    if(mod&&k.toLowerCase()==='k'){e.preventDefault();this.state.pal?this.closePal():this.openPal();return}
+    if(this.state.pal){
+      if(k==='Escape'){e.preventDefault();this.closePal()}
+      else if(k==='ArrowDown'||k==='ArrowUp'){e.preventDefault();const n=this.palFlat.length;if(n)this.setState(s=>({pi:(s.pi+(k==='ArrowDown'?1:-1)+n)%n}))}
+      else if(k==='Enter'){const it=this.palFlat[this.state.pi];if(it){e.preventDefault();it.run()}}
+      else if(k==='Tab'){e.preventDefault();this.palRef.current&&this.palRef.current.focus()}
+      return}
+    if(k==='Escape'&&this.state.sheet){this.setState({sheet:false});return}
+    const tg=(e.target.tagName||'').toLowerCase();
+    if(k==='/'&&!['input','textarea','select'].includes(tg)&&!e.target.isContentEditable){e.preventDefault();this.searchRef.current&&this.searchRef.current.focus()}
+  }
+  openPal=()=>{this.lastFocus=document.activeElement;this.setState({pal:true,pq:'',pi:0})};
+  closePal=()=>this.setState({pal:false});
+  go=h=>{if(location.hash===h)this.onHash();else location.hash=h};
+  parse(){
+    const h=this.state.hash.replace(/^#/,'')||'/';const [path,qs]=h.split('?');const parts=path.split('/').filter(Boolean).map(decodeURIComponent);const p=new URLSearchParams(qs||'');
+    const list=k=>(p.get(k)||'').split(',').filter(Boolean);
+    if(!parts.length)return{view:'home',q:p.get('q')||'',f:{type:list('type'),category:list('category'),tag:list('tag'),author:list('author')},sort:p.get('sort')||''};
+    if(parts[0]==='new'&&parts.length===1)return{view:'new',plugin:p.get('plugin')||''};
+    if(parts[0]==='start'&&parts.length===1)return{view:'start'};
+    if(parts[0]==='plugin'&&parts.length===2)return{view:'detail',id:parts[1]};
+    if(TL[parts[0]]&&parts.length===3)return{view:'detail',id:`${parts[1]}/${parts[0]}/${parts[2]}`};
+    return{view:'404'};
+  }
+  homeHash({q,f,sort}){const p=new URLSearchParams();if(q)p.set('q',q);FKEYS.forEach(([k])=>{if(f[k]&&f[k].length)p.set(k,f[k].join(','))});if(sort)p.set('sort',sort);const s=p.toString().replace(/%2C/g,',');return'#/'+(s?'?'+s:'')}
+  setHome(next,push){const h=this.homeHash(next);history[push?'pushState':'replaceState'](null,'',h);this.setState({hash:h})}
+  copy(key,text){
+    const done=ok=>{clearTimeout(this.timers[key]);this.setState(s=>({copied:{...s.copied,[key]:ok?'copied':'failed'},live:ok?'Copied: '+text:'Copy failed'}));this.timers[key]=setTimeout(()=>this.setState(s=>{const c={...s.copied};delete c[key];return{copied:c}}),1800)};
+    const fb=()=>{try{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');ta.remove();done(ok)}catch(e){done(false)}};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(()=>done(true),fb);else fb();
+  }
+  cs(key){const v=this.state.copied[key];return{idle:!v,copied:v==='copied',failed:v==='failed'}}
+  data(){const c=this.props.catalog??'demo';if(this._c!==c){this._c=c;this._d=build(c==='real'?PLUGINS.slice(0,1):PLUGINS)}return this._d}
+  card(a,terms){return{...a,glyph:TL[a.type].glyph,typeLabel:TL[a.type].label,sub:a.type==='plugin'?`${a.children.length} item${a.children.length===1?'':'s'} · ${a.author}`:`in ${a.plugin} · ${a.author}`,segs:segs(a.description,terms),tags:a.tags.slice(0,3),sec:this.secBadges(a.security),updated:'updated '+fmt(a.updatedAt),install:a.installCommand,cs:this.cs('c:'+a.id),onCopy:e=>{e.stopPropagation();this.copy('c:'+a.id,a.installCommand)},copyAria:`Copy install command for ${a.name}`}}
+  secBadges(s){return[s.hooks&&{label:'hooks',title:'Runs hooks on Claude Code events'},s.mcp&&{label:'MCP',title:'Starts an MCP server'},s.scripts&&{label:'scripts',title:'Runs shell scripts'}].filter(Boolean)}
+
+  renderVals(){
+    const {arts,rel,byId}=this.data();const S=this.state,r=this.parse();
+    const wide=S.w>=900,narrow=S.w<860,theme=this.themeNow();
+    let view=r.view,da=null;if(view==='detail'){da=byId[r.id];if(!da)view='404'}
+    const q=view==='home'?r.q:'';const f=r.f||{type:[],category:[],tag:[],author:[]};
+    const mac=/Mac|iPhone|iPad/.test(navigator.platform||'');
+    const base={live:S.live,wide,narrow,searchRef:this.searchRef,palRef:this.palRef,q,hasQ:!!q,noQ:!q,
+      searchFlex:narrow?'1 1 100%':'1 1 320px',searchOrder:narrow?3:0,kHint:mac?'⌘K':'Ctrl K',
+      themeLabel:theme==='dark'?'Light':'Dark',themeAria:`Switch to ${theme==='dark'?'light':'dark'} theme`,
+      toggleTheme:()=>{const t=theme==='dark'?'light':'dark';try{localStorage.setItem('ddm-theme',t)}catch(e){}this.setState({theme:t})},
+      navLinks:[['#/','Browse','home'],['#/new',"What's new",'new'],['#/start','Get started','start']].map(([href,label,v])=>({href,label,current:view===v?'page':undefined,color:view===v?'var(--text)':'var(--muted)',bg:view===v?'var(--surface-2)':'transparent'})),
+      onQ:e=>{const v=e.target.value;if(view!=='home'){location.hash=this.homeHash({q:v,f,sort:''})}else this.setHome({q:v,f,sort:r.sort},false)},
+      clearQ:()=>{this.setHome({q:'',f,sort:r.sort},true);this.searchRef.current&&this.searchRef.current.focus()},
+      isHome:view==='home',isDetail:view==='detail',isNew:view==='new',isStart:view==='start',is404:view==='404',
+      openPal:this.openPal,closePal:this.closePal,stop:e=>e.stopPropagation(),pal:S.pal,pq:S.pq,
+      pluginOptions:arts.filter(a=>a.type==='plugin').map(a=>a.name),
+      on404Submit:e=>{e.preventDefault();const v=new FormData(e.target).get('q')||'';location.hash=this.homeHash({q:v,f:{},sort:''})}};
+
+    // command palette
+    const pages=[{label:'Browse',sub:'All artifacts',glyph:'⌂',run:()=>this.go('#/')},{label:"What's new",sub:'Release feed',glyph:'★',run:()=>this.go('#/new')},{label:'Get started',sub:'Connect the marketplace',glyph:'→',run:()=>this.go('#/start')},{label:`Switch to ${theme==='dark'?'light':'dark'} theme`,sub:'Action',glyph:'◐',run:()=>{base.toggleTheme();this.closePal()}}];
+    const art=a=>({label:a.name,sub:a.type==='plugin'?a.description:`${a.plugin} · ${a.description}`,glyph:TL[a.type].glyph,type:a.type,run:()=>this.go(a.href)});
+    let groups=[];
+    if(S.pal&&S.loaded){
+      if(!S.pq.trim()){groups=[{label:'Pages',items:pages},{label:'Plugins',items:arts.filter(a=>a.type==='plugin').slice(0,5).map(art)}]}
+      else{const pqn=norm(S.pq);const pm=pages.filter(p=>norm(p.label).includes(pqn));const {res}=search(arts,S.pq);res.sort((a,b)=>b.score-a.score);const top=res.slice(0,10).map(x=>x.a);
+        TYPES.forEach(([t,,,pl])=>{const it=top.filter(a=>a.type===t).map(art);if(it.length)groups.push({label:pl,items:it})});if(pm.length)groups.push({label:'Pages',items:pm})}
+    }
+    let fi=0;this.palFlat=[];const pi=Math.min(S.pi,Math.max(0,groups.reduce((n,g)=>n+g.items.length,0)-1));
+    groups=groups.map(g=>({label:g.label,items:g.items.map(it=>{const i=fi++;this.palFlat.push(it);const active=i===pi;return{...it,domId:'pal-'+i,active,bg:active?'var(--surface-2)':'transparent',glyphColor:it.type?`var(--t-${it.type})`:'var(--muted)',font:it.type?'var(--mono)':'var(--sans)',hover:()=>{if(this.state.pi!==i)this.setState({pi:i})}}})}));
+    Object.assign(base,{palGroups:groups,palActiveId:this.palFlat.length?'pal-'+pi:undefined,palLoading:S.pal&&!S.loaded,palNoMatch:S.pal&&S.loaded&&!!S.pq.trim()&&!this.palFlat.length,onPq:e=>this.setState({pq:e.target.value,pi:0})});
+
+    if(view==='home'){
+      const {res,terms}=q?search(arts,q):{res:arts.map(a=>({a,score:0})),terms:[]};
+      const pass=(a,skip)=>FKEYS.every(([k])=>k===skip||!f[k].length||valOf(a,k).some(v=>f[k].includes(v)));
+      let results=res.filter(x=>pass(x.a));
+      const sortEff=r.sort||(q?'relevance':'name');
+      results.sort((x,y)=>sortEff==='relevance'?y.score-x.score||x.a.name.localeCompare(y.a.name):sortEff==='updated'?y.a.updatedAt.localeCompare(x.a.updatedAt)||x.a.name.localeCompare(y.a.name):x.a.name.localeCompare(y.a.name));
+      const toggle=(k,v)=>{const cur=f[k];const nf={...f,[k]:cur.includes(v)?cur.filter(x=>x!==v):[...cur,v]};this.setHome({q,f:nf,sort:r.sort},true)};
+      const facetGroups=FKEYS.map(([k,label])=>{
+        const counts={};res.filter(x=>pass(x.a,k)).forEach(x=>valOf(x.a,k).forEach(v=>counts[v]=(counts[v]||0)+1));
+        let vals=k==='type'?TYPES.map(t=>t[0]):[...new Set(arts.flatMap(a=>valOf(a,k)))];
+        vals.sort((a,b)=>k==='type'?0:(counts[b]||0)-(counts[a]||0)||a.localeCompare(b));
+        const limit=k==='tag'&&!S.allTags?8:99;const more=vals.length>limit;vals=vals.slice(0,limit);
+        const expanded=!S.collapsed[k];
+        return{label,expanded,caret:expanded?'▾':'▸',hasSel:f[k].length>0,clearAria:`Clear ${label} filter`,
+          onToggle:()=>this.setState(s=>({collapsed:{...s.collapsed,[k]:!s.collapsed[k]}})),onClear:()=>this.setHome({q,f:{...f,[k]:[]},sort:r.sort},true),
+          hasMore:k==='tag'&&(more||S.allTags),moreLabel:S.allTags?'Show fewer':'Show all tags',onMore:()=>this.setState(s=>({allTags:!s.allTags})),
+          options:vals.map(v=>{const n=counts[v]||0,checked=f[k].includes(v),disabled=!n&&!checked;return{value:v,isType:k==='type',glyph:k==='type'?TL[v].glyph:'',label:k==='type'?TL[v].label:k==='tag'?'#'+v:v,count:n,checked,disabled,opacity:disabled?.45:1,cursor:disabled?'default':'pointer',onToggle:()=>toggle(k,v)}})};
+      });
+      const chips=FKEYS.flatMap(([k,l])=>f[k].map(v=>{const lab=k==='type'?TL[v]?.label||v:v;return{label:`${l}: ${lab}`,aria:`Remove filter ${l} ${lab}`,onRemove:()=>toggle(k,v)}}));
+      const nFilters=chips.length;
+      Object.assign(base,{
+        heroCode:{text:`/plugin marketplace add GrinIara/${M}`,...this.cs('hero'),onCopy:()=>this.copy('hero',`/plugin marketplace add GrinIara/${M}`)},
+        stats:TYPES.map(([t,,,pl])=>{const n=arts.filter(a=>a.type===t).length;return{label:pl,n,color:n?'var(--text)':'var(--border-strong)'}}),
+        facetGroups,chips,hasChips:nFilters>0||!!q,
+        clearAll:()=>this.setHome({q:'',f:{type:[],category:[],tag:[],author:[]},sort:''},true),
+        homeCols:narrow?'minmax(0,1fr)':'220px minmax(0,1fr)',
+        showAside:!narrow||S.sheet,sheetOpen:narrow&&S.sheet,asideRole:narrow?'dialog':undefined,
+        asideStyle:narrow?{position:'fixed',left:0,right:0,bottom:0,zIndex:41,maxHeight:'82vh',overflowY:'auto',background:'var(--surface)',borderTop:'1px solid var(--border-strong)',borderRadius:'16px 16px 0 0',padding:'20px 20px 24px',display:'flex',flexDirection:'column',gap:22}:{position:'sticky',top:88,alignSelf:'start',display:'flex',flexDirection:'column',gap:24},
+        openSheet:()=>this.setState({sheet:true}),closeSheet:()=>this.setState({sheet:false}),
+        filtersBtnLabel:nFilters?`Filters · ${nFilters}`:'Filters',showResultsLabel:`Show ${results.length} result${results.length===1?'':'s'}`,
+        resultsTitle:q?`Results for “${q}”`:'All artifacts',countLabel:`${results.length} result${results.length===1?'':'s'}`,
+        sortEff,onSort:e=>this.setHome({q,f,sort:e.target.value},true),
+        sortOptions:[{value:'relevance',label:'Relevance',disabled:!q},{value:'name',label:'Name'},{value:'updated',label:'Recently updated'}],
+        loading:!S.loaded,skeletons:[1,2,3,4,5,6],hasResults:S.loaded&&results.length>0,noResults:S.loaded&&!results.length,
+        cards:results.map(x=>this.card(x.a,terms)),
+        emptyTitle:q?`No results for “${q}”`:'No artifacts match these filters',
+        suggestions:['review','tests',"скіл для рев'ю PR",'hooks','react'].map(s=>({label:s,onClick:()=>this.setHome({q:s,f:{type:[],category:[],tag:[],author:[]},sort:''},true)})),
+        latestReleases:rel.slice(0,3).map(x=>({...x,dateLabel:fmt(x.date)||'No date'}))
+      });
+    }
+
+    if(view==='detail'){
+      const a=da,isP=a.type==='plugin',parent=byId[a.plugin];
+      const includes=isP?a.children.map(id=>byId[id]):[parent,...parent.children.filter(id=>id!==a.id).map(id=>byId[id])];
+      const tabsDef=[['overview','Overview'],['includes',isP?'What it includes':'Plugin',includes.length],['perms','Permissions'],['compat','Compatibility'],['log','Changelog',a.changelog.length]];
+      const tab=S.tab;
+      const related=[...(isP?[]:[]),...arts.filter(x=>x.id!==a.id&&x.plugin!==a.plugin&&x.tags.some(t=>a.tags.includes(t))).map(x=>({x,why:'Shared tag #'+x.tags.find(t=>a.tags.includes(t))})),...(isP?[]:includes.filter(x=>x.type!=='plugin').map(x=>({x,why:'Same plugin'})))].slice(0,4);
+      const s=a.security;
+      const flag=(on,yes,no)=>({isFlag:true,state:on?'⚠ Yes':'No',color:on?'var(--warn)':'var(--muted)',text:on?yes:no,chips:[]});
+      base.detailCols=S.w>=1000?'minmax(0,1fr) 280px':'minmax(0,1fr)';
+      base.onTabKey=e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();const ids=tabsDef.map(t=>t[0]);let i=ids.indexOf(tab);i=e.key==='Home'?0:e.key==='End'?ids.length-1:(i+(e.key==='ArrowRight'?1:-1)+ids.length)%ids.length;this.setState({tab:ids[i]},()=>{const el=document.getElementById('tab-'+ids[i]);el&&el.focus()})};
+      base.d={...a,glyph:TL[a.type].glyph,typeLabel:TL[a.type].label,typeLower:TL[a.type].label.toLowerCase(),isChild:!isP,pluginHref:'#/plugin/'+a.plugin,cc:a.compat.claudeCode,updated:fmt(a.updatedAt),install:a.installCommand,sec:this.secBadges(s),
+        cs:this.cs('d:'+a.id),onCopy:()=>this.copy('d:'+a.id,a.installCommand),
+        tabs:tabsDef.map(([id,label,count])=>({tid:'tab-'+id,label,count,hasCount:count!=null,selected:tab===id,tabindex:tab===id?0:-1,line:tab===id?'var(--accent)':'transparent',color:tab===id?'var(--text)':'var(--muted)',onClick:()=>this.setState({tab:id})})),
+        activeTid:'tab-'+tab,tOverview:tab==='overview',tIncludes:tab==='includes',tPerms:tab==='perms',tCompat:tab==='compat',tLog:tab==='log',
+        blocks:md(a.body).map((b,i)=>b.code?{...b,cs:this.cs(`md:${a.id}:${i}`),onCopy:()=>this.copy(`md:${a.id}:${i}`,b.t)}:b),
+        includes:includes.map((x,i)=>({...x,glyph:TL[x.type].glyph,typeLabel:TL[x.type].label,divider:i?'1px solid var(--border)':'0'})),
+        perms:[{isFlag:false,label:'Tools',chips:a.tools,text:a.tools.length?'':'No tools declared in frontmatter'},{label:'Hooks',...flag(s.hooks,'Runs hooks on Claude Code events (hooks/hooks.json)','No hooks')},{label:'MCP',...flag(s.mcp,'Starts an MCP server (.mcp.json)','No MCP servers')},{label:'Scripts',...flag(s.scripts,'Runs shell commands or bundled scripts','No scripts')}].map((p,i)=>({...p,divider:i?'1px solid var(--border)':'0'})),
+        os:['macOS','Linux','Windows'].map(n=>{const ok=a.compat.os.includes(n);return{name:n,label:ok?'✓ Supported':'✕ Not supported',color:ok?'var(--ok)':'var(--danger)'}}),
+        log:a.changelog.map(([version,date,notes],i)=>({version,notes,dateLabel:fmt(date)||'No date recorded',dot:i?'var(--surface-2)':'var(--accent)'})),
+        related:related.map(({x,why})=>({...x,why,glyph:TL[x.type].glyph,typeLabel:TL[x.type].label})),hasRelated:related.length>0,noRelated:!related.length};
+    }
+
+    if(view==='new'){
+      Object.assign(base,{relPlugin:r.plugin,onRelPlugin:e=>{const v=e.target.value;const h='#/new'+(v?'?plugin='+v:'');history.replaceState(null,'',h);this.setState({hash:h})},
+        relCols:S.w>=640?'120px minmax(0,1fr)':'minmax(0,1fr)',
+        releases:rel.filter(x=>!r.plugin||x.plugin===r.plugin).map(x=>({...x,dateLabel:fmt(x.date)||'No date',dateColor:x.date?'var(--text)':'var(--muted)'}))});
+    }
+    if(view==='start'){
+      const pl=S.startPlugin||'<plugin>';
+      const st=[['Add the marketplace',`/plugin marketplace add GrinIara/${M}`,'Registers this repo as a plugin source. Run once per machine.'],['Install a plugin',`/plugin install ${pl}@${M}`,'Pick a plugin here, or copy the command from any card.'],['Reload','/reload-plugins','Makes the new skills, agents and commands available in the current session.']];
+      Object.assign(base,{startPlugin:S.startPlugin,onStartPlugin:e=>this.setState({startPlugin:e.target.value}),
+        steps:st.map(([title,cmd,note],i)=>{const c=this.cs('s'+i);return{title,cmd,note,picker:i===1,cs:c,mark:c.copied?'✓':String(i+1),dotBg:c.copied?'var(--accent)':'var(--surface-2)',dotColor:c.copied?'var(--accent-ink)':'var(--text)',copyAria:`Copy step ${i+1} command`,onCopy:()=>this.copy('s'+i,cmd)}})});
+    }
+    return base;
+  }
+}
+</script>
+</body>
+</html>

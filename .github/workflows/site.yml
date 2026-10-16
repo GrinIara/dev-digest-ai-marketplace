@@ -1,0 +1,155 @@
+name: Site
+
+# A separate workflow from "Validate marketplace" (validate.yml), which checks the plugins themselves.
+# This one builds and publishes the website. In the Checks list of a pull request each job below shows
+# up as its own line, so "Build site" passing or failing is visible on its own:
+#   Site / Tests · Site / Build site · Site / End-to-end tests · Site / Deploy to GitHub Pages
+
+on:
+  pull_request:
+    paths: ['site/**', 'design-prototype/**', 'scripts/**', 'plugins/**', '.claude-plugin/**', '.github/workflows/site.yml']
+  push:
+    branches: [main]
+    paths: ['site/**', 'design-prototype/**', 'scripts/**', 'plugins/**', '.claude-plugin/**', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  # Fast checks that need no build: indexer tests, site unit tests (including the guard that keeps UI text
+  # in src/i18n/en.ts) and the TypeScript type check.
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: site
+
+      - name: Indexer tests
+        run: node --test scripts/*.test.mjs
+
+      - name: Type check
+        run: npm run typecheck
+        working-directory: site
+
+      - name: Site unit tests
+        run: npm test
+        working-directory: site
+
+  # Only the build. If this job is green, the site compiles from what is in the repository.
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: release dates fall back to the commit that bumped the version.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: site
+
+      # `npm run build` first runs scripts/build-index.mjs, so the site only ever shows what is in the repo,
+      # then type-checks and builds with Vite into site/dist.
+      - name: Build index and site
+        run: npm run build
+        working-directory: site
+
+      # The Claude Design prototype is published next to the app, at /design-prototype/.
+      - name: Add design prototype
+        run: cp -R design-prototype site/dist/design-prototype
+
+      - name: Build summary
+        run: |
+          {
+            echo "### Site build"
+            node -e '
+              const i = JSON.parse(require("fs").readFileSync("site/dist/index.json", "utf8"));
+              const s = i.stats;
+              console.log(`- Commit: \`${i.commit}\``);
+              console.log(`- Catalog: ${s.plugins} plugins, ${s.skills} skills, ${s.agents} agents, ${s.commands} commands, ${s.hooks} hooks, ${s.mcp} MCP servers`);
+              console.log(`- Releases: ${i.releases.length}`);
+            '
+            echo "- Output size: $(du -sh site/dist | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  # Runs the browser tests against the production build. Starts only after the build succeeded.
+  e2e:
+    name: End-to-end tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: site
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: site
+
+      - name: Run end-to-end tests
+        run: npm run e2e
+        working-directory: site
+
+      - name: Upload the report when tests fail
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: site/playwright-report
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # Only main publishes, and only when the tests, the build and the browser tests all passed.
+    # Pull requests stop after the checks above.
+    if: github.event_name != 'pull_request'
+    needs: [tests, build, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
