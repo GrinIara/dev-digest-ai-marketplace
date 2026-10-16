@@ -13,6 +13,34 @@
       "description": "Reference template plugin: one skill and one agent. Copy it to start a new plugin.",
       "category": "template",
       "tags": ["template", "example"]
+    },
+    {
+      "name": "engineering-paved-path",
+      "source": "./plugins/engineering-paved-path",
+      "description": "Engineering skills for TypeScript web projects: React, Next.js, Fastify, Drizzle and PostgreSQL, Zod, TypeScript, layered architecture, testing and security.",
+      "category": "engineering",
+      "tags": ["react", "nextjs", "fastify", "drizzle", "postgresql", "zod", "typescript", "architecture", "testing", "security"]
+    },
+    {
+      "name": "research-tools",
+      "source": "./plugins/research-tools",
+      "description": "A researcher agent for repository lookups and external research. It has no edit tools and reports findings with evidence.",
+      "category": "research",
+      "tags": ["research", "investigation", "agent"]
+    },
+    {
+      "name": "architecture-review",
+      "source": "./plugins/architecture-review",
+      "description": "An architecture reviewer agent that checks a diff against layering and boundary rules, using the project's own rules and the engineering-paved-path skills.",
+      "category": "architecture",
+      "tags": ["architecture", "review", "layering", "agent"]
+    },
+    {
+      "name": "sdd-engineering",
+      "source": "./plugins/sdd-engineering",
+      "description": "A Spec Driven Development workflow: spec-creator, implementation-planner, implementer and plan-verifier agents, plus the implement and workflow-retro skills.",
+      "category": "workflow",
+      "tags": ["sdd", "specification", "planning", "implementation", "verification", "workflow"]
     }
   ]
 }
