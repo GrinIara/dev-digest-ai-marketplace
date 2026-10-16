@@ -1,3 +1,7 @@
 # Every plugin directory needs an owner entry; scripts/lint-marketplace.mjs checks this.
 *                   @GrinIara
 /plugins/starter/   @GrinIara
+/plugins/engineering-paved-path/ @GrinIara
+/plugins/research-tools/ @GrinIara
+/plugins/architecture-review/ @GrinIara
+/plugins/sdd-engineering/ @GrinIara

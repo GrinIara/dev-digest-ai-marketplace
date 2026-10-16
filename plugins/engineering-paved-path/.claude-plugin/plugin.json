@@ -1,0 +1,8 @@
+{
+  "name": "engineering-paved-path",
+  "version": "1.0.0",
+  "description": "Engineering skills for TypeScript web projects: React, Next.js, Fastify, Drizzle and PostgreSQL, Zod, TypeScript, layered architecture, testing and security.",
+  "author": { "name": "GrinIara", "url": "https://github.com/GrinIara" },
+  "repository": "https://github.com/GrinIara/dev-digest-ai-marketplace",
+  "keywords": ["react", "nextjs", "fastify", "drizzle", "postgresql", "zod", "typescript", "architecture", "testing", "security"]
+}

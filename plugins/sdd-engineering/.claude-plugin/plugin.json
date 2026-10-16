@@ -1,0 +1,13 @@
+{
+  "name": "sdd-engineering",
+  "version": "1.0.0",
+  "description": "A Spec Driven Development workflow: spec-creator, implementation-planner, implementer and plan-verifier agents, plus the implement and workflow-retro skills.",
+  "author": { "name": "GrinIara", "url": "https://github.com/GrinIara" },
+  "repository": "https://github.com/GrinIara/dev-digest-ai-marketplace",
+  "keywords": ["sdd", "spec-driven-development", "specification", "planning", "implementation", "verification", "workflow"],
+  "dependencies": [
+    { "name": "engineering-paved-path", "version": "^1.0.0" },
+    { "name": "research-tools", "version": "^1.0.0" },
+    { "name": "architecture-review", "version": "^1.0.0" }
+  ]
+}
