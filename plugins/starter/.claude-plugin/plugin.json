@@ -1,0 +1,11 @@
+{
+  "name": "starter",
+  "version": "0.1.0",
+  "description": "Reference template plugin: one skill and one agent. Copy it to start a new plugin.",
+  "author": {
+    "name": "GrinIara",
+    "url": "https://github.com/GrinIara"
+  },
+  "repository": "https://github.com/GrinIara/dev-digest-ai-marketplace",
+  "keywords": ["template", "example"]
+}

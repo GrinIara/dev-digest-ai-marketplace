@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+.claude/settings.local.json
+
+# Private team docs and temporary research; kept local, never pushed
+docs/
