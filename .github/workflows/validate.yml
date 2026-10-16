@@ -1,0 +1,49 @@
+name: Validate marketplace
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  # Pinned so a validator update cannot break CI unexpectedly. Bump on purpose.
+  CLAUDE_CODE_VERSION: 2.1.301
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+
+      - name: Official validation
+        run: claude plugin validate . --strict
+
+      - name: Structural lint
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/lint-marketplace.mjs --base "origin/${{ github.base_ref }}"
+          else
+            node scripts/lint-marketplace.mjs
+          fi
+
+      - name: Install smoke test
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude-config
+        run: |
+          claude plugin marketplace add ./
+          for name in $(node -e 'for (const p of require("./.claude-plugin/marketplace.json").plugins) console.log(p.name)'); do
+            claude plugin install "$name@dev-digest-ai-marketplace"
+          done
+          claude plugin list

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "dev-digest-ai-marketplace",
+  "description": "Claude Code plugins from Dev Digest: skills, agents and workflows for everyday engineering.",
+  "owner": {
+    "name": "GrinIara",
+    "url": "https://github.com/GrinIara"
+  },
+  "plugins": [
+    {
+      "name": "starter",
+      "source": "./plugins/starter",
+      "description": "Reference template plugin: one skill and one agent. Copy it to start a new plugin.",
+      "category": "template",
+      "tags": ["template", "example"]
+    }
+  ]
+}
