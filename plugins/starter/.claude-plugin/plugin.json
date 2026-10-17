@@ -1,6 +1,6 @@
 {
   "name": "starter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reference template plugin: one skill and one agent. Copy it to start a new plugin.",
   "author": {
     "name": "GrinIara",

@@ -9,4 +9,5 @@ Confirm that the `starter` plugin from `dev-digest-ai-marketplace` is installed 
 
 1. Greet the user in one short sentence.
 2. List what this plugin ships: the `hello` skill and the `starter-helper` agent.
-3. Point to `plugins/starter/README.md` in the marketplace repo as the template for new plugins.
+3. Say the plugin version is 0.1.1 (read it from `.claude-plugin/plugin.json` if available), so the user can tell which release they received.
+4. Point to `plugins/starter/README.md` in the marketplace repo as the template for new plugins.
