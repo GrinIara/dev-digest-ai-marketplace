@@ -1,6 +1,6 @@
 {
   "name": "research-tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A researcher agent for repository lookups and external research. It has no edit tools and reports findings with evidence.",
   "author": { "name": "GrinIara", "url": "https://github.com/GrinIara" },
   "repository": "https://github.com/GrinIara/dev-digest-ai-marketplace",
